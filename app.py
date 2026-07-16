@@ -11,7 +11,7 @@ app.secret_key = os.environ.get("SESSION_SECRET", "super_secret_jude_key_123!")
 # --- DATABASE CONFIG ---
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres:YOUR_ACTUAL_PASSWORD@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
+    "postgresql://postgres:tJ2*MTXY7vtHtDk@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
 )
 
 def get_db_connection():
