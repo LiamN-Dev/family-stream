@@ -9,9 +9,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super_secret_jude_key_123!")
 
 # --- DATABASE CONFIG ---
+# Paste your real Supabase password between the colon and the @ sign below.
+# NOTE: since this is hardcoded here instead of an env var, don't push this file
+# to a public GitHub repo with the real password in it.
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres:tJ2*MTXY7vtHtDk@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
+    "postgresql://postgres:PASTE_YOUR_PASSWORD_HERE@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
 )
 
 def get_db_connection():
@@ -165,8 +168,14 @@ def check_maintenance():
     allowed_endpoints = ['login_page', 'api_login', 'logout', 'static', 'get_settings']
     if request.endpoint in allowed_endpoints:
         return
-        
-    settings = get_current_settings()
+
+    try:
+        settings = get_current_settings()
+    except Exception as e:
+        # If the DB is unreachable, fail open instead of 500-ing every page.
+        print(f"Maintenance check failed, DB unreachable: {e}")
+        return
+
     if settings and settings.get("maintenance_active"):
         # If Admin is logged in, they can bypass maintenance mode to configure settings
         if session.get("role") == "admin":
