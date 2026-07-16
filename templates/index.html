@@ -3,273 +3,1124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canada Trip Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Rocky Mountain Gateway | Fairmont Luxury Club</title>
+    <!-- Tailwind CSS & Google Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #092c20, #0b1a24 60%, #03080e);
+            background-attachment: fixed;
+            color: #f3f4f6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* --- Liquid Glass Core (Glassmorphism) --- */
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .liquid-glass:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 50px -5px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Distinct Gold Highlight for Presidential / Admin UI panels */
+        .glass-gold {
+            background: rgba(197, 160, 89, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(197, 160, 89, 0.25);
+            box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6);
+        }
+
+        .glass-gold:hover {
+            background: rgba(197, 160, 89, 0.09);
+            border-color: rgba(197, 160, 89, 0.4);
+        }
+
+        /* Glass Form Inputs */
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(197, 160, 89, 0.6);
+            box-shadow: 0 0 15px rgba(197, 160, 89, 0.25);
+            outline: none;
+        }
+
+        /* Luxury Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(197, 160, 89, 0.4);
+        }
+    </style>
 </head>
-<!-- The body will get class 'theme-vip', 'theme-staff', 'theme-president', etc. injected dynamically -->
-<body id="app-body" class="theme-guest">
-<div class="site-shell">
+<body class="relative">
 
-    <!-- Persistent site-wide banner (revealed after the popup below is dismissed) -->
-    <div id="alert-banner" class="banner" style="display: none;">
-        <span id="banner-content">Welcome to the trip!</span>
-        <button onclick="closeBanner()" class="banner-close">&times;</button>
-    </div>
+    <!-- Ambient Mountain Atmosphere Underlays -->
+    <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-900/10 rounded-full filter blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-10 right-10 w-[600px] h-[600px] bg-sky-900/10 rounded-full filter blur-[150px] pointer-events-none"></div>
 
-    <header>
-        <div class="header-container">
-            <div class="logo">
-                <h1 class="brand-mark">🏔️ Canada Trip</h1>
-                <p>Private family media portal</p>
-            </div>
-            <div class="auth-box">
-                <span id="user-greeting">Welcome, Guest!</span>
-                <a id="auth-btn" href="/login" class="nav-btn">Sign In</a>
-            </div>
+    <!-- LOGGED OUT GLOBAL SITE BANNER -->
+    <div id="loggedOutBanner" class="hidden w-full bg-emerald-950/80 backdrop-blur-md border-b border-emerald-500/20 text-center py-3 px-4 text-emerald-200 text-sm tracking-wide z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <span class="flex items-center gap-2">
+                <i class="fa-solid fa-hotel text-amber-500"></i>
+                <span id="bannerText">Experience the Canadian Rockies: Fairmont Banff Springs & Lake Louise Luxury Tour</span>
+            </span>
+            <a href="/login" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 py-1 px-3 rounded-full transition">Log In to Portal</a>
         </div>
-    </header>
-
-    <!-- MAIN NAVIGATION -->
-    <nav class="tab-navigation">
-        <button class="tab-btn active" onclick="switchTab('videos-tab')">🎥 Stream Feed</button>
-        <button id="vip-tab-btn" class="tab-btn" onclick="switchTab('vip-tab')" style="display: none;">🌟 VIP Feed</button>
-        <button class="tab-btn" onclick="switchTab('itinerary-tab')">📅 Itinerary</button>
-        <button id="chat-tab-btn" class="tab-btn" onclick="switchTab('chat-tab')" style="display: none;">💬 Messenger</button>
-        <button id="admin-tab-btn" class="tab-btn" onclick="switchTab('admin-tab')" style="display: none;">🛠️ Admin Console</button>
-    </nav>
-
-    <div class="search-container">
-        <input type="text" id="video-search" placeholder="🔍 Search through trip videos..." onkeyup="filterVideos()">
     </div>
 
-    <main class="main-wrapper">
-
-        <!-- TAB 1: GENERAL VIDEOS -->
-        <section id="videos-tab" class="tab-content active">
-            <h2 class="section-title">General Stream Feed</h2>
-            <div id="general-video-grid" class="video-grid">
-                <p class="status-msg">Loading public video playlist...</p>
-            </div>
-        </section>
-
-        <!-- TAB 2: VIP BONUS VIDEOS + video requests -->
-        <section id="vip-tab" class="tab-content">
-            <h2 class="section-title">🌟 VIP Exclusive Feed</h2>
-            <div id="vip-video-grid" class="video-grid">
-                <p class="status-msg">Loading VIP playlist...</p>
-            </div>
-
-            <div class="card" id="vip-request-section" style="display:none; margin-top: 24px;">
-                <h3>🎬 Request a Video</h3>
-                <p class="note">Have an idea for a video you'd love to see made from the trip? Send it to the Admin.</p>
-                <form id="video-request-form">
-                    <textarea id="video-request-text" placeholder="Describe the video you'd like made..." required></textarea>
-                    <button type="submit" class="admin-btn" style="margin-top: 10px;">Send Request</button>
-                </form>
-                <h4 style="margin-top: 20px;">Your Requests:</h4>
-                <div id="my-video-requests-list" class="sub-list">No requests sent yet.</div>
-            </div>
-        </section>
-
-        <!-- TAB 3: ITINERARY -->
-        <section id="itinerary-tab" class="tab-content">
-            <h2 class="section-title">📅 Trip Itinerary PDF</h2>
-
-            <!-- Non-blocking review notice: sits above the PDF, never covers it -->
-            <div id="itinerary-lock-bar" class="lock-bar" style="display:none;">
-                📌 The itinerary was just updated — take a moment to look it over. Full navigation unlocks in
-                <span id="itinerary-lock-countdown">10</span>s.
-            </div>
-
-            <div class="pdf-container card" style="padding: 10px;">
-                <iframe id="itinerary-frame" src="about:blank" width="100%" height="600px" style="border-radius: 10px; border: none;"></iframe>
-            </div>
-        </section>
-
-        <!-- TAB 4: MESSENGER (Staff / President / Admin) -->
-        <section id="chat-tab" class="tab-content">
-            <div class="portal-grid">
-                <!-- Staff & President submit trip videos via an external Google Form
-                     (keeps large file uploads off this server entirely) -->
-                <div class="card upload-card" id="staff-drive-section">
-                    <h3>📁 Submit a Trip Video</h3>
-                    <p class="note">Send your video (phone photo library or computer file) through the form below — it uploads straight to the Admin's Google Drive, so this site never has to handle the file. The Admin will review, edit, and publish it to the feed.</p>
-                    <a class="nav-btn" style="display:inline-block; margin-top: 10px;" target="_blank" rel="noopener"
-                       href="https://docs.google.com/forms/d/e/1FAIpQLSebM-W1FSOtc2SkOyFd4t_bHpgGY4SxWPFsxRYk5k0P3WaK6A/viewform?usp=header">
-                        Open Submission Form ↗
-                    </a>
-                </div>
-
-                <!-- Live Chat -->
-                <div class="card chat-card">
-                    <h3>💬 Live Chat Channels</h3>
-                    <div class="chat-controls">
-                        <label for="chat-channel">Select Channel:</label>
-                        <select id="chat-channel" onchange="loadChats()">
-                            <option value="global_staff">Global Staff Chat</option>
-                        </select>
+    <!-- MAIN WRAPPER -->
+    <div class="min-height-screen flex flex-col justify-between">
+        
+        <!-- HEADER / NAVIGATION -->
+        <header class="w-full py-5 px-6 md:px-12 z-40 border-b border-white/5 bg-black/10 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <!-- Branding -->
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-emerald-800 flex items-center justify-center border border-white/10 shadow-lg">
+                        <i class="fa-solid fa-mountain-sun text-white group-hover:scale-110 transition duration-300"></i>
                     </div>
-                    <div id="chat-messages" class="chat-display">No messages yet.</div>
-                    <form id="chat-send-form" class="chat-form">
-                        <input type="text" id="chat-input" placeholder="Write a secure message..." required>
-                        <button type="submit">Send</button>
-                    </form>
+                    <div>
+                        <span class="block text-lg tracking-widest text-amber-400 font-bold brand-font uppercase">Fairmont</span>
+                        <span class="block text-xs uppercase tracking-widest text-slate-400 font-semibold">Rockies Summit 2026</span>
+                    </div>
+                </a>
+
+                <!-- User Session Actions -->
+                <div class="flex items-center gap-4" id="navSessionBlock">
+                    <!-- Loaded dynamically via JavaScript -->
                 </div>
             </div>
-        </section>
+        </header>
 
-        <!-- TAB 5: ADMIN CONSOLE -->
-        <section id="admin-tab" class="tab-content">
-            <h2 class="section-title">⚙️ Master Controller Panel</h2>
-            <div class="admin-grid">
+        <!-- PORTAL DYNAMIC ROOT CONTAINER -->
+        <main class="flex-grow max-w-7xl w-full mx-auto p-6 md:p-12 relative z-10">
+            <!-- Loading Shield -->
+            <div id="portalLoading" class="flex flex-col items-center justify-center py-24">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500 mb-4"></div>
+                <p class="text-sm tracking-wider text-slate-400 uppercase">Verifying Security Credentials...</p>
+            </div>
 
-                <!-- Add a video to the feed -->
-                <div class="card">
-                    <h3>🎥 Add Video to Feed</h3>
-                    <form id="admin-add-video-form">
-                        <div class="form-group">
-                            <label>Video Title</label>
-                            <input type="text" id="new-video-title" placeholder="e.g. Day 3 — Lake Louise Hike" required>
-                            <label>YouTube URL</label>
-                            <input type="text" id="new-video-url" placeholder="https://youtube.com/watch?v=..." required>
-                            <label><input type="checkbox" id="new-video-vip"> 🌟 Publish to VIP feed instead of general feed</label>
-                        </div>
-                        <button type="submit" class="admin-btn">Add Video</button>
-                    </form>
+            <!-- GUEST / LOGGED-OUT MAIN HOME -->
+            <div id="guestPortal" class="hidden space-y-12 animate-fade-in">
+                <!-- Majestic Hero Banner -->
+                <div class="relative rounded-3xl overflow-hidden p-8 md:p-16 text-center border border-white/10 shadow-2xl bg-cover bg-center" style="background-image: linear-gradient(rgba(3, 8, 14, 0.85), rgba(3, 8, 14, 0.95)), url('https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80');">
+                    <span class="text-amber-400 uppercase tracking-widest text-xs font-semibold px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/5 inline-block mb-4">EXCLUSIVE FAMILY SUMMIT</span>
+                    <h1 class="text-4xl md:text-6xl text-white font-light tracking-wide mb-6">Banff Springs & Lake Louise</h1>
+                    <p class="text-slate-300 max-w-2xl mx-auto text-base md:text-lg leading-relaxed mb-8">
+                        Welcome to our family’s high-altitude Rocky Mountain voyage. Log in with your specialized access credentials to unlock custom interactive features, itineraries, and media feeds.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <a href="/login" class="px-8 py-3.5 bg-gradient-to-r from-amber-600 to-amber-500 text-black font-semibold rounded-xl hover:shadow-lg hover:scale-105 transition duration-300">
+                            Enter Member Portal
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Global Overrides -->
-                <div class="card">
-                    <h3>💡 Global Overrides</h3>
-                    <form id="admin-settings-form">
-                        <div class="form-group">
-                            <label><input type="checkbox" id="m-toggle"> ⚠️ Activate Maintenance Mode</label>
-                            <input type="text" id="m-msg" placeholder="Maintenance message overlay...">
-                            <input type="text" id="m-timer" placeholder="Timer description (e.g. '15 minutes') — optional">
+                <!-- Showcase Highlights -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="liquid-glass rounded-2xl p-8 flex gap-6 items-start">
+                        <div class="p-4 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <i class="fa-solid fa-castle text-2xl"></i>
                         </div>
-                        <div class="form-group">
-                            <label><input type="checkbox" id="b-toggle"> 📢 Active Site Alert Banner</label>
-                            <input type="text" id="b-text" placeholder="Banner announcement text...">
-                            <label for="b-color">Banner Theme:</label>
-                            <select id="b-color">
-                                <option value="#4f46e5">Blue</option>
-                                <option value="#ef4444">Alert Red</option>
-                                <option value="#f59e0b">Amber Warning</option>
-                                <option value="#10b981">Emerald Green</option>
-                            </select>
+                        <div>
+                            <h3 class="text-xl text-white font-semibold mb-2">Banff Springs Castle</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Experience historical architectural royalty and thermal waters in our starting premium accommodation nestled inside Banff National Park.
+                            </p>
                         </div>
-                        <div class="form-group">
-                            <label>📅 Update Daily Itinerary PDF URL</label>
-                            <input type="url" id="itinerary-url-input" placeholder="Google Drive/Dropbox direct PDF link">
+                    </div>
+                    <div class="liquid-glass rounded-2xl p-8 flex gap-6 items-start">
+                        <div class="p-4 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            <i class="fa-solid fa-water text-2xl"></i>
                         </div>
-                        <button type="submit" class="admin-btn">Save Overrides</button>
-                    </form>
+                        <div>
+                            <h3 class="text-xl text-white font-semibold mb-2">Pristine Lake Louise</h3>
+                            <p class="text-slate-400 text-sm leading-relaxed">
+                                Paddle glacial turquoise waters, hike scenic trails, and find absolute serene quietness right outside your bedroom window.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== VIP DASHBOARD ==================== -->
+            <div id="vipPortal" class="hidden space-y-10">
+                <!-- Welcomer -->
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
+                    <div>
+                        <span class="text-amber-500 text-xs tracking-widest uppercase font-bold">Premium Club Lounge</span>
+                        <h2 class="text-3xl md:text-4xl text-white font-bold mt-1">Welcome Back, <span class="sessionUser text-amber-300">VIP</span></h2>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/5 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-slate-300">
+                        <i class="fa-solid fa-passport text-amber-500"></i>
+                        <span>Role: <strong class="text-white uppercase">VIP Member</strong></span>
+                    </div>
                 </div>
 
-                <!-- Custom Popup Push Alerts -->
-                <div class="card">
-                    <h3>📢 Send Target Popups</h3>
-                    <form id="admin-popup-form">
-                        <label for="popup-target">Target Destination:</label>
-                        <select id="popup-target">
-                            <option value="all_staff">All Staff (incl. President)</option>
-                            <option value="president">President Only</option>
-                        </select>
-                        <textarea id="popup-text" placeholder="Write custom alert message..." required></textarea>
-                        <button type="submit" class="admin-btn">Push Alert</button>
-                    </form>
-                </div>
-
-                <!-- VIP Video Requests -->
-                <div class="card">
-                    <h3>🎬 VIP Video Requests</h3>
-                    <div id="admin-video-requests">Loading requests...</div>
-                </div>
-
-                <!-- User Account Management -->
-                <div class="card user-mgmt-card">
-                    <h3>👥 Manage User Accounts</h3>
-                    <form id="admin-create-user-form" class="create-user-form">
-                        <h4>Create Account</h4>
-                        <div class="field-row">
-                            <label>Username</label>
-                            <input type="text" id="new-user-name" placeholder="e.g. grandma_v" required>
-                        </div>
-                        <div class="field-row">
-                            <label>Password</label>
-                            <input type="text" id="new-user-pass" placeholder="Temporary password" required>
-                        </div>
-                        <div class="field-row">
-                            <label>Display Name</label>
-                            <input type="text" id="new-user-display" placeholder="How their greeting should read, e.g. Grandma">
-                        </div>
-                        <div class="field-row">
-                            <label>Favorite Color</label>
-                            <input type="color" id="new-user-color" value="#47a68c">
-                        </div>
-                        <div class="field-row">
-                            <label>Account Type</label>
-                            <select id="new-user-role">
-                                <option value="vip">VIP Member</option>
-                                <option value="staff">General Staff</option>
-                                <option value="president">President</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="admin-btn">Create Account</button>
-                    </form>
-
-                    <h4>Active Accounts</h4>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Password</th>
-                                    <th>Role</th>
-                                    <th>Color</th>
-                                    <th>Locked</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-user-table-body">
+                <!-- 2-Column Luxury Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Itinerary & Google Drive Viewer (Take up 2 Cols) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-calendar-check text-amber-500"></i>
+                                    Interactive Luxury Itinerary
+                                </h3>
+                                <span id="pdfTimestamp" class="text-xs text-slate-400 italic"></span>
+                            </div>
+                            <!-- Clean Embedded Viewer -->
+                            <div id="itineraryContainer" class="w-full h-[580px] rounded-xl overflow-hidden border border-white/10 bg-black/40">
                                 <!-- Loaded dynamically via JS -->
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar: Video Library & Interactions -->
+                    <div class="space-y-6">
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-clapperboard text-emerald-400"></i>
+                                Exclusive Event Videos
+                            </h3>
+                            <div class="space-y-4 max-h-[560px] overflow-y-auto pr-2" id="vipVideoFeed">
+                                <!-- Videos injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== PRESIDENT DASHBOARD ==================== -->
+            <div id="presidentPortal" class="hidden space-y-10">
+                <!-- Exclusive Presidential header -->
+                <div class="relative overflow-hidden rounded-2xl p-8 border border-amber-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900/40 to-emerald-950/40 shadow-2xl">
+                    <div class="absolute right-4 top-4 text-8xl text-amber-500/5 font-bold uppercase pointer-events-none select-none">Suite</div>
+                    <span class="text-xs text-amber-400 font-semibold uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 inline-block mb-3">Executive Authority</span>
+                    <h2 class="text-3xl md:text-5xl text-white font-bold brand-font">Presidential Club Suite</h2>
+                    <p class="text-slate-300 mt-2 text-sm max-w-xl">
+                        Welcome, Commander. This custom-tailored environment manages your exclusive administrative feedback requests and priority briefings directly.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Direct Action: Send Decree to Admin -->
+                    <div class="space-y-6">
+                        <div class="glass-gold rounded-2xl p-6">
+                            <h3 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-stamp"></i>
+                                Dispatch Decree
+                            </h3>
+                            <p class="text-xs text-amber-300/60 mb-6">Write a direct, secure operational instruction or message to the Admin Console.</p>
+                            
+                            <form id="decreeForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Instruction / Message text</label>
+                                    <textarea id="decreeText" rows="5" class="w-full rounded-lg glass-input p-3 text-sm" placeholder="Enter message text for the Admin..."></textarea>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg text-sm transition tracking-wider uppercase">
+                                    Send Decree to Admin
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Logs of past decrees -->
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <h4 class="text-sm uppercase tracking-widest text-slate-400 mb-4">Past Decrees Log</h4>
+                            <div class="space-y-3 max-h-[220px] overflow-y-auto pr-2" id="presidentDecreeLogs">
+                                <!-- Dynamic decrees -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shared Itinerary Grid (Columns 2 & 3) -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-map-location-dot text-emerald-400"></i>
+                                    Interactive Peak Itinerary
+                                </h3>
+                                <span id="presPdfTimestamp" class="text-xs text-slate-400 italic"></span>
+                            </div>
+                            <div id="presItineraryContainer" class="w-full h-[480px] rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                                <!-- Loaded dynamically via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== STAFF PORTAL ==================== -->
+            <div id="staffPortal" class="hidden space-y-10">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/5 pb-6">
+                    <div>
+                        <span class="text-emerald-400 text-xs tracking-widest uppercase font-bold">Trip Operations Core</span>
+                        <h2 class="text-3xl md:text-4xl text-white font-bold mt-1">Staff Coordination Base</h2>
                     </div>
                 </div>
 
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Submission Panel -->
+                    <div class="space-y-6">
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <h3 class="text-xl font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                Submit Trip Video
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-6">Paste your shared Google Drive video link for verification and publishing. This avoids server storage overload!</p>
+                            
+                            <form id="submissionForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Video Title</label>
+                                    <input type="text" id="subTitle" required class="w-full rounded-lg glass-input p-3 text-sm" placeholder="e.g., Banff Springs Gondola Tour">
+                                </div>
+                                <div>
+                                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Google Drive Link</label>
+                                    <input type="url" id="subDriveUrl" required class="w-full rounded-lg glass-input p-3 text-sm" placeholder="https://drive.google.com/file/d/...">
+                                </div>
+                                <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-sm transition tracking-wider uppercase">
+                                    Submit for Admin Review
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Private Submission Feed log -->
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <h3 class="text-sm uppercase tracking-widest text-slate-400 mb-4">Your Recent Submissions</h3>
+                            <div class="space-y-3" id="staffSubList">
+                                <!-- Dynamic submissions -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Itinerary Check View -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="liquid-glass rounded-2xl p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-calendar-alt text-emerald-400"></i>
+                                    Master Reference Itinerary
+                                </h3>
+                                <span id="staffPdfTimestamp" class="text-xs text-slate-400 italic"></span>
+                            </div>
+                            <div id="staffItineraryContainer" class="w-full h-[480px] rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                                <!-- Loaded dynamically via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
 
-    </main>
+            <!-- ==================== ADMIN DASHBOARD ==================== -->
+            <div id="adminPortal" class="hidden space-y-12">
+                <!-- Header -->
+                <div class="border-b border-white/5 pb-6">
+                    <span class="text-red-400 text-xs tracking-widest uppercase font-bold">Admin Command Operations</span>
+                    <h2 class="text-3xl md:text-4xl text-white font-bold mt-1">Summit Control Center</h2>
+                </div>
 
-    <!-- SITE-WIDE BANNER POPUP (shown once per visit, then collapses to the top banner) -->
-    <div id="banner-popup-modal" class="popup-modal" style="display: none;">
-        <div class="popup-box">
-            <h3>📢 Site Announcement</h3>
-            <p id="banner-popup-text"></p>
-            <button onclick="dismissBannerPopup()">Got it</button>
+                <!-- Admin Dynamic Tabs Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <!-- Navigation sidebar for modules -->
+                    <div class="space-y-2">
+                        <button onclick="switchAdminTab('sys')" class="admin-tab-btn w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition text-amber-500 bg-white/5 border border-white/10" id="btn-tab-sys">
+                            <i class="fa-solid fa-sliders"></i> System Configurations
+                        </button>
+                        <button onclick="switchAdminTab('users')" class="admin-tab-btn w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition text-slate-400 hover:text-white" id="btn-tab-users">
+                            <i class="fa-solid fa-users-gear"></i> User Management
+                        </button>
+                        <button onclick="switchAdminTab('popups')" class="admin-tab-btn w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition text-slate-400 hover:text-white" id="btn-tab-popups">
+                            <i class="fa-solid fa-bell"></i> Targeted Alerts
+                        </button>
+                        <button onclick="switchAdminTab('video_sub')" class="admin-tab-btn w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition text-slate-400 hover:text-white relative" id="btn-tab-video_sub">
+                            <i class="fa-solid fa-video"></i> Video Queue
+                        </button>
+                        <button onclick="switchAdminTab('decrees')" class="admin-tab-btn w-full text-left py-3 px-4 rounded-xl flex items-center gap-3 font-semibold transition text-slate-400 hover:text-white" id="btn-tab-decrees">
+                            <i class="fa-solid fa-stamp"></i> Presidential Decrees
+                        </button>
+                    </div>
+
+                    <!-- Main Dynamic Area inside Admin -->
+                    <div class="lg:col-span-3 space-y-8">
+                        
+                        <!-- TAB 1: SYSTEM SETTINGS -->
+                        <div id="admin-tab-sys-view" class="admin-view-panel space-y-6">
+                            <div class="liquid-glass rounded-2xl p-6">
+                                <h3 class="text-xl font-bold text-white mb-6">Global Application Settings</h3>
+                                <form id="adminSettingsForm" class="space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Maintenance mode -->
+                                        <div class="space-y-4 border-r border-white/5 pr-6">
+                                            <div class="flex items-center justify-between">
+                                                <label class="text-sm font-semibold text-slate-300">Active Maintenance Lock</label>
+                                                <input type="checkbox" id="sett_maint_active" class="w-10 h-5 rounded-full bg-slate-800 accent-amber-500 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Maintenance Message</label>
+                                                <input type="text" id="sett_maint_msg" class="w-full rounded-lg glass-input p-2.5 text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Countdown Timer</label>
+                                                <input type="text" id="sett_maint_timer" class="w-full rounded-lg glass-input p-2.5 text-sm" placeholder="e.g., Jul 20, 2026 12:00:00">
+                                            </div>
+                                        </div>
+
+                                        <!-- Site Banner Settings -->
+                                        <div class="space-y-4">
+                                            <div class="flex items-center justify-between">
+                                                <label class="text-sm font-semibold text-slate-300">Active Header Banner</label>
+                                                <input type="checkbox" id="sett_banner_active" class="w-10 h-5 rounded-full bg-slate-800 accent-amber-500 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Banner Banner Text</label>
+                                                <input type="text" id="sett_banner_text" class="w-full rounded-lg glass-input p-2.5 text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs uppercase tracking-wider text-slate-400 mb-1">Banner Theme Color</label>
+                                                <input type="color" id="sett_banner_color" class="w-full h-10 rounded-lg cursor-pointer bg-transparent border border-white/10">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-white/5">
+
+                                    <!-- Itinerary Link Management -->
+                                    <div>
+                                        <label class="block text-sm font-semibold text-slate-300 mb-1">Google Drive Itinerary Link</label>
+                                        <p class="text-xs text-slate-400 mb-3">Copy your standard sharing link here. The portal will dynamically clean and display it inside an interactive glass-panel reader.</p>
+                                        <input type="url" id="sett_pdf_url" class="w-full rounded-lg glass-input p-3 text-sm" placeholder="https://drive.google.com/file/d/.../view">
+                                    </div>
+
+                                    <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold text-sm transition">
+                                        Save All System Configurations
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: USER MANAGEMENT -->
+                        <div id="admin-tab-users-view" class="admin-view-panel hidden space-y-6 animate-fade-in">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <!-- Create User Panel -->
+                                <div class="liquid-glass rounded-2xl p-6 h-fit">
+                                    <h3 class="text-lg font-bold text-white mb-4">Register User</h3>
+                                    <form id="adminAddUserForm" class="space-y-4">
+                                        <div>
+                                            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Username</label>
+                                            <input type="text" id="add_user_name" required class="w-full rounded-lg glass-input p-2.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                                            <input type="text" id="add_user_pass" required class="w-full rounded-lg glass-input p-2.5 text-sm">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Role Type</label>
+                                            <select id="add_user_role" class="w-full rounded-lg glass-input p-2.5 text-sm bg-slate-900">
+                                                <option value="vip">VIP</option>
+                                                <option value="staff">Staff</option>
+                                                <option value="president">President</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                        <button type="submit" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg text-sm transition uppercase">
+                                            Register Account
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- User management grid table -->
+                                <div class="md:col-span-2 liquid-glass rounded-2xl p-6">
+                                    <h3 class="text-lg font-bold text-white mb-4">Active System Accounts</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left text-sm text-slate-300">
+                                            <thead>
+                                                <tr class="border-b border-white/10 text-slate-400 text-xs uppercase tracking-wider">
+                                                    <th class="py-2.5">User</th>
+                                                    <th class="py-2.5">Password</th>
+                                                    <th class="py-2.5">Role</th>
+                                                    <th class="py-2.5">Status</th>
+                                                    <th class="py-2.5 text-right">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="adminUserTable">
+                                                <!-- Dynamic list injected via JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: TARGETED ALERTS -->
+                        <div id="admin-tab-popups-view" class="admin-view-panel hidden space-y-6">
+                            <div class="liquid-glass rounded-2xl p-6">
+                                <h3 class="text-xl font-bold text-white mb-2">Broadcast Targeted Alert Popup</h3>
+                                <p class="text-xs text-slate-400 mb-6">Send an urgent notifications overlay popup instantly on screen. Targets can be designated globally or strictly mapped to custom roles.</p>
+                                
+                                <form id="adminPopupForm" class="space-y-4 max-w-xl">
+                                    <div>
+                                        <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Select Target Audience</label>
+                                        <select id="popup_target" class="w-full rounded-lg glass-input p-3 text-sm bg-slate-900">
+                                            <option value="global">Global (All registered users)</option>
+                                            <option value="president">President Only</option>
+                                            <option value="staff">Staff Only</option>
+                                            <option value="vip">VIP Only</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Message Text</label>
+                                        <textarea id="popup_msg" rows="4" required class="w-full rounded-lg glass-input p-3 text-sm" placeholder="Write urgent alert details here..."></textarea>
+                                    </div>
+                                    <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg text-sm transition uppercase">
+                                        Broadcast Alert
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: VIDEO SUBMISSIONS QUEUE -->
+                        <div id="admin-tab-video_sub-view" class="admin-view-panel hidden space-y-6">
+                            <div class="liquid-glass rounded-2xl p-6">
+                                <div class="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-white">Staff Submissions Queue</h3>
+                                        <p class="text-xs text-slate-400 mt-1">Review videos submitted by staff via Google Drive. Map, verify, and publish directly to the public catalog.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-4" id="adminSubQueue">
+                                    <!-- Dynamic elements -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: PRESIDENTIAL DECREES VIEW -->
+                        <div id="admin-tab-decrees-view" class="admin-view-panel hidden space-y-6">
+                            <div class="liquid-glass rounded-2xl p-6">
+                                <h3 class="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-stamp"></i>
+                                    Presidential Directives
+                                </h3>
+                                <p class="text-xs text-slate-400 mb-6">Review official presidential decrees issued down from the President's cabin suite.</p>
+                                <div class="space-y-4" id="adminDecreeLog">
+                                    <!-- Dynamic -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- LUXURY FOOTER -->
+        <footer class="w-full py-6 text-center border-t border-white/5 bg-black/30 backdrop-blur-md relative z-10">
+            <p class="text-xs tracking-wider text-slate-500 uppercase">
+                &copy; 2026 Fairmont Rockies Family Private Network. Rebuilt under Liquid Glass protocols.
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- TARGET POPUP INCOMING ALERTS INJECTOR -->
+    <div id="popupAlertOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+        <div class="glass-gold max-w-md w-full p-6 rounded-2xl relative">
+            <span class="text-xs tracking-widest text-amber-400 uppercase font-bold flex items-center gap-2 mb-2">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Incoming Priority Message
+            </span>
+            <p id="overlayPopupMessage" class="text-white text-base leading-relaxed mb-6"></p>
+            <div class="flex justify-end">
+                <button id="closePopupBtn" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-lg text-sm transition">
+                    Acknowledge Directive
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- TARGETED ADMIN POPUPS -->
-    <div id="custom-alert-modal" class="popup-modal" style="display: none;">
-        <div class="popup-box">
-            <h3>📢 Message from Admin</h3>
-            <p id="popup-modal-content"></p>
-            <button onclick="dismissCustomPopup()">Acknowledge</button>
-        </div>
-    </div>
-
-</div>
-
+    <!-- CLIENT SYSTEM APP SCRIPTS -->
     <script>
-        const userRole = "{{ session.get('role', 'guest') }}";
-        const userName = "{{ session.get('username', '') }}";
-        const userDisplayName = "{{ session.get('display_name', '') }}";
-        const userColor = "{{ session.get('favorite_color', '') }}";
+        let currentRole = "guest";
+        let currentUsername = "";
+
+        // Core App Initialization
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadGlobalSettings();
+            await checkSession();
+            // Start routine pooling to check for targeted real-time alerts
+            setInterval(checkIncomingPopups, 5000);
+        });
+
+        // 1. Convert Standard Google Drive URL to Embed Preview Format
+        function formatDriveUrl(url) {
+            if (!url) return '';
+            // Checks to extract ID and change view/sharing links to embed previewer
+            try {
+                let match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (match && match[1]) {
+                    return `https://drive.google.com/file/d/${match[1]}/preview`;
+                }
+                return url;
+            } catch (e) {
+                return url;
+            }
+        }
+
+        // 2. Loads settings and rendering adjustments
+        async function loadGlobalSettings() {
+            try {
+                const res = await fetch("/api/settings");
+                const data = await res.json();
+                
+                if (data) {
+                    // Update Guest/General Banner dynamically
+                    if (data.banner_active) {
+                        document.getElementById("loggedOutBanner").classList.remove("hidden");
+                        document.getElementById("bannerText").innerText = data.banner_text;
+                        document.getElementById("loggedOutBanner").style.borderBottomColor = data.banner_color + '33';
+                    } else {
+                        document.getElementById("loggedOutBanner").classList.add("hidden");
+                    }
+                }
+            } catch (err) {
+                console.error("Configuration system initialization error:", err);
+            }
+        }
+
+        // 3. User Credentials verification
+        async function checkSession() {
+            try {
+                // Fetch to check active session settings
+                const res = await fetch("/api/settings");
+                const settings = await res.json();
+
+                // Check active mock elements inside DOM state
+                const userBlock = document.getElementById("navSessionBlock");
+                const dynamicRoot = document.getElementById("portalLoading");
+                
+                // Read from a simulated session storage
+                const role = sessionStorage.getItem("sessionRole") || "guest";
+                const username = sessionStorage.getItem("sessionUsername") || "";
+                
+                currentRole = role;
+                currentUsername = username;
+                
+                dynamicRoot.classList.add("hidden");
+
+                // Render dynamic navigation elements
+                if (role === "guest") {
+                    userBlock.innerHTML = `
+                        <a href="/login" class="px-5 py-2 bg-white/5 border border-white/10 hover:border-white/30 text-white rounded-xl text-sm font-semibold transition tracking-wide">
+                            Portal Login <i class="fa-solid fa-arrow-right-to-bracket ml-1.5"></i>
+                        </a>
+                    `;
+                    document.getElementById("guestPortal").classList.remove("hidden");
+                } else {
+                    userBlock.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-400">Logged in as <strong class="text-amber-400">${username}</strong></span>
+                            <button onclick="handleLogout()" class="px-3.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg text-xs font-semibold transition">
+                                <i class="fa-solid fa-power-off"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    // Unhide and load correct tailored portal dashboard
+                    if (role === "vip") {
+                        setupVipPortal(settings);
+                    } else if (role === "president") {
+                        setupPresidentPortal(settings);
+                    } else if (role === "staff") {
+                        setupStaffPortal(settings);
+                    } else if (role === "admin") {
+                        setupAdminPortal(settings);
+                    }
+                }
+            } catch (err) {
+                console.error("Session initialization failure:", err);
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.clear();
+            window.location.href = "/logout";
+        }
+
+        // 4. ================= VIP Portal Operations =================
+        async function setupVipPortal(settings) {
+            document.getElementById("vipPortal").classList.remove("hidden");
+            document.querySelectorAll(".sessionUser").forEach(el => el.innerText = currentUsername);
+
+            // Set up Drive Itinerary
+            const container = document.getElementById("itineraryContainer");
+            if (settings.itinerary_pdf_url) {
+                let cleanUrl = formatDriveUrl(settings.itinerary_pdf_url);
+                container.innerHTML = `<iframe src="${cleanUrl}" width="100%" height="100%" style="border: none;" allow="autoplay"></iframe>`;
+            } else {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-slate-500 text-sm italic">Itinerary content currently updating...</div>`;
+            }
+
+            if (settings.itinerary_last_updated) {
+                document.getElementById("pdfTimestamp").innerText = `Last updated: ${new Date(settings.itinerary_last_updated).toLocaleString()}`;
+            }
+
+            // Load Video Catalog
+            loadVideosFeed("vipVideoFeed");
+        }
+
+        async function loadVideosFeed(targetId) {
+            const feed = document.getElementById(targetId);
+            feed.innerHTML = `<p class="text-slate-400 text-xs animate-pulse">Retrieving video files...</p>`;
+            try {
+                const res = await fetch("/api/videos");
+                const videos = await res.json();
+                
+                if (videos.length === 0) {
+                    feed.innerHTML = `<div class="text-center py-6 text-slate-500 text-sm">No videos verified yet!</div>`;
+                    return;
+                }
+
+                feed.innerHTML = videos.map(video => `
+                    <div class="liquid-glass rounded-xl overflow-hidden border border-white/5 bg-black/20">
+                        <div class="relative aspect-video">
+                            <iframe class="absolute inset-0 w-full h-full" src="https://www.youtube.com/embed/${video.youtube_id}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
+                        <div class="p-3">
+                            <h4 class="text-white text-sm font-semibold mb-1">${video.title}</h4>
+                            <div class="flex items-center justify-between text-[11px] text-slate-400">
+                                <span>Uploaded by <strong class="text-emerald-400">${video.uploaded_by}</strong></span>
+                                ${video.is_vip_only ? '<span class="text-amber-400 bg-amber-500/10 px-1.5 rounded uppercase">VIP Only</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                feed.innerHTML = `<p class="text-red-400 text-xs">Failed to compile video files.</p>`;
+            }
+        }
+
+        // 5. ================= PRESIDENT Portal Operations =================
+        async function setupPresidentPortal(settings) {
+            document.getElementById("presidentPortal").classList.remove("hidden");
+            
+            // Set up Drive Itinerary
+            const container = document.getElementById("presItineraryContainer");
+            if (settings.itinerary_pdf_url) {
+                let cleanUrl = formatDriveUrl(settings.itinerary_pdf_url);
+                container.innerHTML = `<iframe src="${cleanUrl}" width="100%" height="100%" style="border: none;" allow="autoplay"></iframe>`;
+            } else {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-slate-500 text-sm italic">Itinerary content currently updating...</div>`;
+            }
+
+            if (settings.itinerary_last_updated) {
+                document.getElementById("presPdfTimestamp").innerText = `Updated: ${new Date(settings.itinerary_last_updated).toLocaleString()}`;
+            }
+
+            // Load decrees log
+            loadPresidentDecrees();
+
+            // Submit decree event handler
+            document.getElementById("decreeForm").onsubmit = async (e) => {
+                e.preventDefault();
+                const msg = document.getElementById("decreeText").value;
+                if (!msg.trim()) return;
+
+                const res = await fetch("/api/decrees", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: msg })
+                });
+
+                if (res.ok) {
+                    document.getElementById("decreeText").value = "";
+                    loadPresidentDecrees();
+                }
+            };
+        }
+
+        async function loadPresidentDecrees() {
+            const container = document.getElementById("presidentDecreeLogs");
+            try {
+                const res = await fetch("/api/decrees");
+                const list = await res.json();
+                
+                if (list.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-500 italic">No decrees submitted yet.</p>`;
+                    return;
+                }
+                
+                container.innerHTML = list.map(item => `
+                    <div class="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/10 text-xs">
+                        <p class="text-amber-400 leading-relaxed font-semibold">${item.message}</p>
+                        <span class="text-[10px] text-slate-500 block mt-1">${new Date(item.created_at).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = `<p class="text-xs text-red-400">Failed to pull decrees.</p>`;
+            }
+        }
+
+        // 6. ================= STAFF Portal Operations =================
+        async function setupStaffPortal(settings) {
+            document.getElementById("staffPortal").classList.remove("hidden");
+
+            // Set up Drive Itinerary
+            const container = document.getElementById("staffItineraryContainer");
+            if (settings.itinerary_pdf_url) {
+                let cleanUrl = formatDriveUrl(settings.itinerary_pdf_url);
+                container.innerHTML = `<iframe src="${cleanUrl}" width="100%" height="100%" style="border: none;" allow="autoplay"></iframe>`;
+            } else {
+                container.innerHTML = `<div class="flex items-center justify-center h-full text-slate-500 text-sm italic">Itinerary content currently updating...</div>`;
+            }
+
+            if (settings.itinerary_last_updated) {
+                document.getElementById("staffPdfTimestamp").innerText = `Updated: ${new Date(settings.itinerary_last_updated).toLocaleString()}`;
+            }
+
+            loadStaffSubmissions();
+
+            // Submit Video link form
+            document.getElementById("submissionForm").onsubmit = async (e) => {
+                e.preventDefault();
+                const title = document.getElementById("subTitle").value;
+                const driveUrl = document.getElementById("subDriveUrl").value;
+
+                const res = await fetch("/api/submissions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title, driveUrl })
+                });
+
+                if (res.ok) {
+                    document.getElementById("subTitle").value = "";
+                    document.getElementById("subDriveUrl").value = "";
+                    loadStaffSubmissions();
+                    alert("Link submitted successfully for verification!");
+                }
+            };
+        }
+
+        async function loadStaffSubmissions() {
+            const container = document.getElementById("staffSubList");
+            try {
+                const res = await fetch("/api/submissions");
+                const list = await res.json();
+                if (list.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-500 italic">No submitted items found.</p>`;
+                    return;
+                }
+                container.innerHTML = list.map(sub => `
+                    <div class="p-3 rounded-lg bg-black/20 border border-white/5 text-xs flex justify-between items-center">
+                        <div>
+                            <p class="text-white font-semibold">${sub.title}</p>
+                            <span class="text-[10px] text-slate-500">${new Date(sub.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                            sub.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
+                            sub.status === 'rejected' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
+                        }">${sub.status}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = `<p class="text-xs text-red-400">Failed to load list.</p>`;
+            }
+        }
+
+        // 7. ================= ADMIN Portal Operations =================
+        function switchAdminTab(targetTab) {
+            document.querySelectorAll(".admin-tab-btn").forEach(btn => {
+                btn.classList.remove("text-amber-500", "bg-white/5", "border", "border-white/10");
+                btn.classList.add("text-slate-400", "hover:text-white");
+            });
+
+            const activeBtn = document.getElementById(`btn-tab-${targetTab}`);
+            activeBtn.classList.remove("text-slate-400", "hover:text-white");
+            activeBtn.classList.add("text-amber-500", "bg-white/5", "border", "border-white/10");
+
+            document.querySelectorAll(".admin-view-panel").forEach(panel => panel.classList.add("hidden"));
+            document.getElementById(`admin-tab-${targetTab}-view`).classList.remove("hidden");
+        }
+
+        async function setupAdminPortal(settings) {
+            document.getElementById("adminPortal").classList.remove("hidden");
+
+            // Setup sys config defaults
+            document.getElementById("sett_maint_active").checked = settings.maintenance_active;
+            document.getElementById("sett_maint_msg").value = settings.maintenance_message;
+            document.getElementById("sett_maint_timer").value = settings.maintenance_timer || "";
+            document.getElementById("sett_banner_active").checked = settings.banner_active;
+            document.getElementById("sett_banner_text").value = settings.banner_text;
+            document.getElementById("sett_banner_color").value = settings.banner_color;
+            document.getElementById("sett_pdf_url").value = settings.itinerary_pdf_url || "";
+
+            // Populate settings event post handler
+            document.getElementById("adminSettingsForm").onsubmit = async (e) => {
+                e.preventDefault();
+                const updated = {
+                    maintenance_active: document.getElementById("sett_maint_active").checked,
+                    maintenance_message: document.getElementById("sett_maint_msg").value,
+                    maintenance_timer: document.getElementById("sett_maint_timer").value,
+                    banner_active: document.getElementById("sett_banner_active").checked,
+                    banner_text: document.getElementById("sett_banner_text").value,
+                    banner_color: document.getElementById("sett_banner_color").value,
+                    itinerary_pdf_url: document.getElementById("sett_pdf_url").value
+                };
+
+                const res = await fetch("/api/admin/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updated)
+                });
+                if (res.ok) alert("Global configuration applied successfully!");
+            };
+
+            // Register CRUD User handler
+            document.getElementById("adminAddUserForm").onsubmit = async (e) => {
+                e.preventDefault();
+                const req = {
+                    username: document.getElementById("add_user_name").value,
+                    password: document.getElementById("add_user_pass").value,
+                    role: document.getElementById("add_user_role").value
+                };
+                const res = await fetch("/api/admin/users", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(req)
+                });
+                if (res.ok) {
+                    document.getElementById("adminAddUserForm").reset();
+                    loadAdminUsers();
+                }
+            };
+
+            // Setup Custom Popups Alert Broadcast submit handler
+            document.getElementById("adminPopupForm").onsubmit = async (e) => {
+                e.preventDefault();
+                const payload = {
+                    target: document.getElementById("popup_target").value,
+                    message: document.getElementById("popup_msg").value
+                };
+                const res = await fetch("/api/admin/popup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    document.getElementById("adminPopupForm").reset();
+                    alert("Broadcasting of targeted alert successful!");
+                }
+            };
+
+            // Load all internal components
+            loadAdminUsers();
+            loadAdminVideoQueue();
+            loadAdminDecrees();
+        }
+
+        async function loadAdminUsers() {
+            const table = document.getElementById("adminUserTable");
+            try {
+                const res = await fetch("/api/admin/users");
+                const users = await res.json();
+
+                table.innerHTML = users.map(user => `
+                    <tr class="border-b border-white/5 hover:bg-white/5 transition duration-200">
+                        <td class="py-3 font-semibold text-white">${user.username}</td>
+                        <td class="py-3 font-mono text-xs">${user.password}</td>
+                        <td class="py-3"><span class="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded uppercase">${user.role}</span></td>
+                        <td class="py-3">
+                            <span class="text-xs ${user.is_locked ? 'text-red-400' : 'text-emerald-400'}">${user.is_locked ? 'Locked' : 'Active'}</span>
+                        </td>
+                        <td class="py-3 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button onclick="toggleLockUser(${user.id}, '${user.username}', '${user.password}', '${user.role}', ${!user.is_locked})" class="text-slate-400 hover:text-amber-500 transition px-2 py-1 bg-white/5 rounded border border-white/10">
+                                    <i class="fa-solid ${user.is_locked ? 'fa-lock-open' : 'fa-lock'}"></i>
+                                </button>
+                                <button onclick="deleteUser(${user.id})" class="text-red-400 hover:text-red-300 transition px-2 py-1 bg-red-500/10 rounded border border-red-500/20">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                table.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-red-400">Failed to parse user records.</td></tr>`;
+            }
+        }
+
+        async function toggleLockUser(id, username, password, role, is_locked) {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password, role, is_locked })
+            });
+            if (res.ok) loadAdminUsers();
+        }
+
+        async function deleteUser(id) {
+            if (!confirm("Are you sure you want to drop this user?")) return;
+            const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+            if (res.ok) loadAdminUsers();
+        }
+
+        async function loadAdminVideoQueue() {
+            const queue = document.getElementById("adminSubQueue");
+            try {
+                const res = await fetch("/api/submissions");
+                const submissions = await res.json();
+                const pending = submissions.filter(s => s.status === 'pending');
+
+                if (pending.length === 0) {
+                    queue.innerHTML = `<div class="p-6 text-center text-slate-500 text-sm italic">Video approval queue is empty.</div>`;
+                    return;
+                }
+
+                queue.innerHTML = pending.map(sub => `
+                    <div class="liquid-glass rounded-xl p-5 border border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="space-y-1">
+                            <span class="text-[10px] text-amber-400 tracking-widest font-bold uppercase">Submitted by ${sub.submitted_by}</span>
+                            <h4 class="text-lg font-bold text-white">${sub.title}</h4>
+                            <p class="text-xs text-slate-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-link text-emerald-400"></i>
+                                <a href="${sub.drive_url}" target="_blank" class="underline hover:text-white truncate max-w-md">${sub.drive_url}</a>
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                            <!-- Approve Directly as Public Video -->
+                            <button onclick="approveVideo('${sub.title}', '${sub.drive_url}', false, ${sub.id})" class="flex-grow md:flex-grow-0 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold tracking-wider uppercase transition">
+                                Approve (Public)
+                            </button>
+                            <!-- Approve Directly as VIP Video -->
+                            <button onclick="approveVideo('${sub.title}', '${sub.drive_url}', true, ${sub.id})" class="flex-grow md:flex-grow-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black rounded-lg text-xs font-semibold tracking-wider uppercase transition">
+                                Approve (VIP Only)
+                            </button>
+                            <!-- Reject -->
+                            <button onclick="rejectVideo(${sub.id})" class="flex-grow md:flex-grow-0 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded-lg text-xs font-semibold tracking-wider uppercase transition border border-red-500/20">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                queue.innerHTML = `<p class="text-xs text-red-400">Could not compile queue database.</p>`;
+            }
+        }
+
+        async function approveVideo(title, driveUrl, isVip, submissionId) {
+            const res = await fetch("/api/admin/publish-video", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, youtubeUrl: driveUrl, isVip, submissionId })
+            });
+            if (res.ok) {
+                alert("Video verified and published!");
+                loadAdminVideoQueue();
+            } else {
+                alert("Error during publishing verification checks.");
+            }
+        }
+
+        async function rejectVideo(id) {
+            const res = await fetch(`/api/admin/submissions/reject/${id}`, { method: "POST" });
+            if (res.ok) {
+                loadAdminVideoQueue();
+            }
+        }
+
+        async function loadAdminDecrees() {
+            const log = document.getElementById("adminDecreeLog");
+            try {
+                const res = await fetch("/api/decrees");
+                const list = await res.json();
+                
+                if (list.length === 0) {
+                    log.innerHTML = `<p class="text-slate-500 italic text-sm">No decrees found.</p>`;
+                    return;
+                }
+                
+                log.innerHTML = list.map(item => `
+                    <div class="glass-gold rounded-xl p-4 border border-amber-500/20">
+                        <p class="text-amber-200 leading-relaxed text-sm">${item.message}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="text-[10px] text-slate-500">${new Date(item.created_at).toLocaleString()}</span>
+                            <span class="text-[9px] uppercase font-bold tracking-widest text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">Official Instruction</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                log.innerHTML = `<p class="text-xs text-red-400">Failed to render directives.</p>`;
+            }
+        }
+
+        // 8. ================= REALTIME POLLING SYSTEM ALERTS =================
+        let loadedPopupIds = new Set();
+        async function checkIncomingPopups() {
+            if (currentRole === "guest") return;
+            try {
+                const res = await fetch("/api/popups");
+                const popups = await res.json();
+                
+                if (popups.length > 0) {
+                    const activePopup = popups[0];
+                    if (!loadedPopupIds.has(activePopup.id)) {
+                        loadedPopupIds.add(activePopup.id);
+                        triggerOverlayPopup(activePopup.message, activePopup.id);
+                    }
+                }
+            } catch (err) {
+                console.warn("Polling system silent failed checks.");
+            }
+        }
+
+        function triggerOverlayPopup(msg, id) {
+            const overlay = document.getElementById("popupAlertOverlay");
+            document.getElementById("overlayPopupMessage").innerText = msg;
+            overlay.classList.remove("hidden");
+
+            document.getElementById("closePopupBtn").onclick = async () => {
+                overlay.classList.add("hidden");
+                // Post mark read
+                await fetch(`/api/popups/read/${id}`, { method: "POST" });
+                loadedPopupIds.delete(id);
+            };
+        }
     </script>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
 </html>
