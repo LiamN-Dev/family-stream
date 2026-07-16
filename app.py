@@ -24,6 +24,7 @@ def init_db():
         cur = conn.cursor()
         
         # 1. Drop old tables to prevent schema clashes
+        cur.execute("DROP TABLE IF EXISTS comments CASCADE;")
         cur.execute("DROP TABLE IF EXISTS messages CASCADE;")
         cur.execute("DROP TABLE IF EXISTS video_submissions CASCADE;")
         cur.execute("DROP TABLE IF EXISTS video_requests CASCADE;")
@@ -32,13 +33,15 @@ def init_db():
         cur.execute("DROP TABLE IF EXISTS users CASCADE;")
         cur.execute("DROP TABLE IF EXISTS site_settings CASCADE;")
         
-        # 2. Users Table
+        # 2. Users Table (Added display_name & favorite_color)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(100) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
-                role VARCHAR(50) DEFAULT 'vip' NOT NULL, -- admin, president, staff, vip
+                display_name VARCHAR(100),
+                favorite_color VARCHAR(20) DEFAULT '#47a68c',
+                role VARCHAR(50) DEFAULT 'vip' NOT NULL,
                 is_locked BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -51,12 +54,24 @@ def init_db():
                 title VARCHAR(255) NOT NULL,
                 youtube_id VARCHAR(100) NOT NULL,
                 uploaded_by VARCHAR(100) DEFAULT 'Admin Verified' NOT NULL,
-                category VARCHAR(50) DEFAULT 'general' NOT NULL, -- general, vip
+                category VARCHAR(50) DEFAULT 'general' NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
-        # 4. Worker Link Submissions (Google Drive URL Queue for Admin review)
+        # 4. Comments Table (Newly mapped to frontend requests)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                video_id INT NOT NULL,
+                user_name VARCHAR(100) NOT NULL,
+                role VARCHAR(50) NOT NULL,
+                text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+
+        # 5. Worker Link Submissions
         cur.execute("""
             CREATE TABLE IF NOT EXISTS video_submissions (
                 id SERIAL PRIMARY KEY,
@@ -68,41 +83,42 @@ def init_db():
             );
         """)
 
-        # 5. VIP Video Request Box
+        # 6. VIP Video Request Box
         cur.execute("""
             CREATE TABLE IF NOT EXISTS video_requests (
                 id SERIAL PRIMARY KEY,
-                title VARCHAR(255) NOT NULL,
-                details TEXT NOT NULL,
+                title VARCHAR(255),
+                request_text TEXT NOT NULL,
                 requested_by VARCHAR(100) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending' NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
         
-        # 6. Secure Message Routing Ledger (Chats)
+        # 7. Secure Message Routing Ledger
         cur.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
                 sender VARCHAR(100) NOT NULL,
-                recipient VARCHAR(100) NOT NULL, -- 'admin', 'president', 'staff_global', or specific username
+                receiver VARCHAR(100) NOT NULL,
                 message TEXT NOT NULL,
-                is_red_flagged BOOLEAN DEFAULT FALSE,
+                is_flagged_red BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
-        # 7. Targeted Popups Alerts
+        # 8. Targeted Popups Alerts
         cur.execute("""
             CREATE TABLE IF NOT EXISTS custom_popups (
                 id SERIAL PRIMARY KEY,
-                target_scope VARCHAR(100) NOT NULL, -- 'all', 'vip', 'staff', 'president', or specific username
+                target_scope VARCHAR(100) NOT NULL,
                 message TEXT NOT NULL,
                 is_read BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
-        # 8. Global Settings & Active Banner Settings
+        # 9. Global Settings
         cur.execute("""
             CREATE TABLE IF NOT EXISTS site_settings (
                 id INT PRIMARY KEY,
@@ -118,7 +134,6 @@ def init_db():
             );
         """)
         
-        # Default Seed Row
         cur.execute("""
             INSERT INTO site_settings (id, maintenance_active, banner_active, itinerary_pdf_url, itinerary_version)
             VALUES (1, FALSE, FALSE, '', 1)
@@ -137,14 +152,13 @@ def seed_users():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Initial core setup credentials
         cur.execute("""
-            INSERT INTO users (username, password, role, is_locked)
+            INSERT INTO users (username, password, display_name, favorite_color, role, is_locked)
             VALUES 
-            ('admin', 'admin123', 'admin', FALSE),
-            ('president', 'pres123', 'president', FALSE),
-            ('staff', 'staff123', 'staff', FALSE),
-            ('vip', 'vip123', 'vip', FALSE)
+            ('admin', 'admin123', 'Admin', '#2bb1a3', 'admin', FALSE),
+            ('president', 'pres123', 'President', '#c23b4a', 'president', FALSE),
+            ('staff', 'staff123', 'Staff Worker', '#c1652f', 'staff', FALSE),
+            ('vip', 'vip123', 'VIP Guest', '#d7a441', 'vip', FALSE)
             ON CONFLICT (username) DO NOTHING;
         """)
         conn.commit()
@@ -200,7 +214,6 @@ def logout():
     return redirect(url_for("home"))
 
 # --- PUBLIC APIS ---
-
 @app.route("/api/settings")
 def get_settings():
     return jsonify(get_current_settings())
@@ -228,12 +241,12 @@ def api_login():
         session["authenticated"] = True
         session["username"] = user["username"]
         session["role"] = user["role"]
+        session["display_name"] = user["display_name"]
         
         return jsonify({"success": True, "role": user["role"]})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-# Get both general and VIP videos matching authentication status
 @app.route("/api/videos")
 def get_videos():
     role = session.get("role", "guest")
@@ -242,10 +255,8 @@ def get_videos():
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         if role == "guest":
-            # Guest can see only General category videos
             cur.execute("SELECT * FROM videos WHERE category = 'general' ORDER BY created_at DESC;")
         else:
-            # Authenticated users get to filter both catalogs
             cur.execute("SELECT * FROM videos ORDER BY created_at DESC;")
             
         videos = cur.fetchall()
@@ -255,8 +266,46 @@ def get_videos():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# --- COMMENTS API ---
+@app.route("/api/comments/<int:video_id>")
+def get_comments(video_id):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM comments WHERE video_id = %s ORDER BY created_at ASC;", (video_id,))
+        comments = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(comments)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/comments", methods=["POST"])
+def post_comment():
+    if not session.get("authenticated"):
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    video_id = data.get("videoId")
+    text = data.get("text", "").strip()
+    if not video_id or not text:
+        return jsonify({"error": "Missing parameters"}), 400
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO comments (video_id, user_name, role, text)
+            VALUES (%s, %s, %s, %s);
+        """, (video_id, session.get("display_name") or session.get("username"), session.get("role"), text))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # --- VIP EXCLUSIVE REQUESTS ---
-@app.route("/api/vip/requests", methods=["GET", "POST"])
+@app.route("/api/video-requests", methods=["GET", "POST"])
 def handle_video_requests():
     role = session.get("role", "guest")
     if role not in ["vip", "admin"]:
@@ -264,19 +313,19 @@ def handle_video_requests():
         
     if request.method == "POST":
         data = request.json or {}
-        title = data.get("title", "").strip()
-        details = data.get("details", "").strip()
+        text = data.get("text", "").strip()
+        title = data.get("title", "Video Request")
         
-        if not title or not details:
-            return jsonify({"error": "Missing title or details"}), 400
+        if not text:
+            return jsonify({"error": "Missing details"}), 400
             
         try:
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO video_requests (title, details, requested_by)
+                INSERT INTO video_requests (title, request_text, requested_by)
                 VALUES (%s, %s, %s);
-            """, (title, details, session.get("username")))
+            """, (title, text, session.get("username")))
             conn.commit()
             cur.close()
             conn.close()
@@ -284,7 +333,6 @@ def handle_video_requests():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    # GET requests (Vips see theirs, Admin sees all)
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -299,52 +347,38 @@ def handle_video_requests():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- WORKER STAFF SUBMISSIONS ---
-@app.route("/api/submissions", methods=["GET", "POST"])
-def handle_video_submissions():
-    role = session.get("role", "guest")
-    if role not in ["staff", "president", "admin"]:
-        return jsonify({"error": "Unauthorized Access"}), 403
-        
-    if request.method == "POST":
-        data = request.json or {}
-        title = data.get("title", "").strip()
-        drive_url = data.get("drive_url", "").strip()
-        
-        if not title or not drive_url:
-            return jsonify({"error": "Missing video parameters"}), 400
-            
-        try:
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO video_submissions (title, drive_url, submitted_by)
-                VALUES (%s, %s, %s);
-            """, (title, drive_url, session.get("username")))
-            conn.commit()
-            cur.close()
-            conn.close()
-            return jsonify({"success": True})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    # GET submissions queue
+@app.route("/api/admin/video-requests/<int:req_id>", methods=["POST"])
+def admin_video_request_status(req_id):
+    if session.get("role") != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+    data = request.json or {}
+    status = data.get("status", "pending")
     try:
         conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        if role == "admin":
-            cur.execute("SELECT * FROM video_submissions ORDER BY created_at DESC;")
-        else:
-            cur.execute("SELECT * FROM video_submissions WHERE submitted_by = %s ORDER BY created_at DESC;", (session.get("username"),))
-        subs = cur.fetchall()
+        cur = conn.cursor()
+        cur.execute("UPDATE video_requests SET status = %s WHERE id = %s;", (status, req_id))
+        conn.commit()
         cur.close()
         conn.close()
-        return jsonify(subs)
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- CHAT & COMMUNICATOR CHANNELS ---
-@app.route("/api/messages", methods=["GET", "POST"])
+# --- DIRECTORY & CHAT ---
+@app.route("/api/directory")
+def get_directory():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT username, display_name, role FROM users ORDER BY username ASC;")
+        users = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify(users)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/chat", methods=["GET", "POST"])
 def handle_messages():
     username = session.get("username")
     role = session.get("role", "guest")
@@ -353,21 +387,21 @@ def handle_messages():
         
     if request.method == "POST":
         data = request.json or {}
-        recipient = data.get("recipient", "").strip()
+        receiver = data.get("receiver", "").strip()
         msg_text = data.get("message", "").strip()
         
-        if not recipient or not msg_text:
+        if not receiver or not msg_text:
             return jsonify({"error": "Bad payload parameters"}), 400
             
-        is_red = (role == "president" and recipient == "admin")
+        is_red = (role == "president" and receiver == "admin")
             
         try:
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO messages (sender, recipient, message, is_red_flagged)
+                INSERT INTO messages (sender, receiver, message, is_flagged_red)
                 VALUES (%s, %s, %s, %s);
-            """, (username, recipient, msg_text, is_red))
+            """, (username, receiver, msg_text, is_red))
             conn.commit()
             cur.close()
             conn.close()
@@ -375,24 +409,10 @@ def handle_messages():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-    # GET available chat rooms
-    target = request.args.get("room", "staff_global") # staff_global, admin, president, or specific user
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        if target == "staff_global":
-            # Visible to staff, president, admin
-            cur.execute("SELECT * FROM messages WHERE recipient = 'staff_global' ORDER BY created_at ASC;")
-        else:
-            # Handles private DMs between two accounts
-            cur.execute("""
-                SELECT * FROM messages 
-                WHERE (sender = %s AND recipient = %s)
-                OR (sender = %s AND recipient = %s)
-                ORDER BY created_at ASC;
-            """, (username, target, target, username))
-            
+        cur.execute("SELECT * FROM messages ORDER BY created_at ASC;")
         messages = cur.fetchall()
         cur.close()
         conn.close()
@@ -400,7 +420,7 @@ def handle_messages():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- POPUP ALERTS POLLING SYSTEM ---
+# --- POPUP ALERTS ---
 @app.route("/api/popups")
 def get_pending_popups():
     username = session.get("username")
@@ -436,9 +456,7 @@ def mark_popup_read(popup_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ADMIN POWER-CONTROLLER MODULES ---
-
-# 1. Full Dynamic User Management (CRUD)
+# --- ADMIN USER CRUD ---
 @app.route("/api/admin/users", methods=["GET", "POST"])
 def admin_users_control():
     if session.get("role") != "admin":
@@ -448,15 +466,17 @@ def admin_users_control():
         data = request.json or {}
         username = data.get("username", "").strip()
         password = data.get("password", "").strip()
+        display_name = data.get("display_name", "").strip()
+        favorite_color = data.get("favorite_color", "#47a68c").strip()
         role = data.get("role", "vip").strip()
         
         try:
             conn = get_db_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO users (username, password, role)
-                VALUES (%s, %s, %s);
-            """, (username, password, role))
+                INSERT INTO users (username, password, display_name, favorite_color, role)
+                VALUES (%s, %s, %s, %s, %s);
+            """, (username, password, display_name, favorite_color, role))
             conn.commit()
             cur.close()
             conn.close()
@@ -467,7 +487,7 @@ def admin_users_control():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT id, username, password, role, is_locked FROM users ORDER BY id ASC;")
+        cur.execute("SELECT id, username, password, display_name, favorite_color, role, is_locked FROM users ORDER BY id ASC;")
         users = cur.fetchall()
         cur.close()
         conn.close()
@@ -495,6 +515,8 @@ def edit_system_user(user_id):
     data = request.json or {}
     username = data.get("username")
     password = data.get("password")
+    display_name = data.get("display_name")
+    favorite_color = data.get("favorite_color")
     role = data.get("role")
     is_locked = data.get("is_locked")
     
@@ -503,9 +525,9 @@ def edit_system_user(user_id):
         cur = conn.cursor()
         cur.execute("""
             UPDATE users 
-            SET username = %s, password = %s, role = %s, is_locked = %s 
+            SET username = %s, password = %s, display_name = %s, favorite_color = %s, role = %s, is_locked = %s 
             WHERE id = %s;
-        """, (username, password, role, is_locked, user_id))
+        """, (username, password, display_name, favorite_color, role, is_locked, user_id))
         conn.commit()
         cur.close()
         conn.close()
@@ -513,19 +535,17 @@ def edit_system_user(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 2. Daily Itinerary & Settings Engine (Increments version counter)
+# --- ADMIN SYSTEM SETTINGS ---
 @app.route("/api/admin/settings", methods=["POST"])
 def update_settings():
     if session.get("role") != "admin":
         return jsonify({"error": "Access Denied"}), 403
         
     data = request.json or {}
-    
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Read old config state to look for changes in itinerary URL
         cur.execute("SELECT itinerary_pdf_url, itinerary_version FROM site_settings WHERE id = 1;")
         row = cur.fetchone()
         old_pdf = row["itinerary_pdf_url"] if row else ""
@@ -533,8 +553,6 @@ def update_settings():
         
         new_pdf = data.get("itinerary_pdf_url", old_pdf).strip()
         new_version = old_version
-        
-        # If the admin changed the daily schedule PDF, increment the tracking version
         if new_pdf != old_pdf:
             new_version += 1
             
@@ -557,13 +575,12 @@ def update_settings():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 3. Queue Dispatcher (Custom Popups Broadcasts)
 @app.route("/api/admin/popup", methods=["POST"])
 def broadcast_custom_alert():
     if session.get("role") != "admin":
         return jsonify({"error": "Access Denied"}), 403
     data = request.json or {}
-    target_scope = data.get("target_scope", "all").strip() # 'all', 'vip', 'staff', 'president' or explicit username
+    target_scope = data.get("target", "all").strip()
     message = data.get("message", "").strip()
     
     try:
@@ -580,18 +597,16 @@ def broadcast_custom_alert():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 4. Verified Video Publisher (Post directly from dashboard or submission review)
-@app.route("/api/admin/publish-video", methods=["POST"])
+@app.route("/api/admin/videos", methods=["POST"])
 def publish_verified_video():
     if session.get("role") != "admin":
         return jsonify({"error": "Access Denied"}), 403
     data = request.json or {}
     title = data.get("title", "").strip()
-    youtube_url = data.get("youtube_url", "").strip()
-    category = data.get("category", "general").strip() # general, vip
-    submission_id = data.get("submission_id")
+    youtube_url = data.get("youtubeUrl", "").strip()
+    is_vip = data.get("isVip", False)
+    category = "vip" if is_vip else "general"
     
-    # Simple YouTube ID Parser for multiple URL variations
     yt_id = ""
     if "v=" in youtube_url:
         yt_id = youtube_url.split("v=")[1].split("&")[0]
@@ -608,45 +623,10 @@ def publish_verified_video():
             VALUES (%s, %s, 'Admin Verified', %s);
         """, (title, yt_id, category))
         
-        if submission_id:
-            cur.execute("UPDATE video_submissions SET status = 'approved' WHERE id = %s;", (submission_id,))
-            
         conn.commit()
         cur.close()
         conn.close()
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/submissions/reject/<int:sub_id>", methods=["POST"])
-def reject_queue_submission(sub_id):
-    if session.get("role") != "admin":
-        return jsonify({"error": "Access Denied"}), 403
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("UPDATE video_submissions SET status = 'rejected' WHERE id = %s;", (sub_id,))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# --- INCOMING SYSTEM CHAT AUDIT (Used by Admin to review Presidential DMs) ---
-@app.route("/api/admin/chat-audit")
-def fetch_all_system_chats():
-    if session.get("role") != "admin":
-        return jsonify([])
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        # Pulls all database messages for admin dashboard overview
-        cur.execute("SELECT * FROM messages ORDER BY created_at DESC;")
-        msgs = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify(msgs)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
