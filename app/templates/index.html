@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canadian Rockies Family Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .staff-theme { background-color: #111827; color: #f3f4f6; }
+        .vip-theme { background-color: #1e1b4b; color: #e0e7ff; border: 2px solid #818cf8; }
+        .hidden-tab { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans transition-all duration-300">
+
+    <!-- SITE-WIDE BANNER (MANAGED BY ADMIN) -->
+    <div id="admin-banner" class="hidden text-white py-3 px-4 text-center font-bold relative transition-all">
+        <span id="banner-text">Site Announcement</span>
+        <button onclick="closeBanner()" class="absolute right-4 top-1/2 -translate-y-1/2 font-bold">✕</button>
+    </div>
+
+    <!-- SITE-WIDE MAINTENANCE OVERLAY -->
+    <div id="maintenance-overlay" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center text-white text-center p-6">
+        <h1 class="text-4xl font-extrabold text-red-500 mb-4">Under Maintenance</h1>
+        <p id="maintenance-msg" class="text-lg max-w-md mb-6">The Admin is fine-tuning our travel portal. We will be right back!</p>
+        <div id="maintenance-timer" class="text-2xl font-mono bg-slate-800 px-4 py-2 rounded hidden"></div>
+    </div>
+
+    <!-- ITINERARY LOCKOUT SCREEN -->
+    <div id="itinerary-lock-screen" class="hidden fixed inset-0 bg-black/95 z-40 flex flex-col items-center justify-center text-white text-center p-6">
+        <h2 class="text-3xl font-extrabold text-amber-500 mb-2">🚨 Important Itinerary Update! 🚨</h2>
+        <p class="text-lg max-w-md mb-6">Your travel schedule has been updated. You must review the daily plan before proceeding back to the main portal.</p>
+        <div class="w-full max-w-4xl h-96 bg-white rounded shadow-lg overflow-hidden mb-4">
+            <iframe id="lockout-pdf-viewer" class="w-full h-full" src=""></iframe>
+        </div>
+        <p id="lockout-countdown" class="text-xl font-bold text-amber-400 animate-pulse">Reviewing schedule: 10s remaining</p>
+    </div>
+
+    <!-- NAVIGATION HEADER -->
+    <header class="bg-white shadow-md border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-black tracking-tight text-blue-600 flex items-center gap-2">
+                🍁 Rockies Family Hub <span id="user-role-badge" class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full uppercase tracking-wider font-semibold">General Guest</span>
+            </h1>
+            
+            <div class="flex items-center gap-4">
+                <nav class="flex gap-2">
+                    <button onclick="switchTab('videos')" class="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Videos</button>
+                    <button onclick="switchTab('itinerary')" class="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Itinerary</button>
+                    <button id="nav-staff-chat" onclick="switchTab('chat')" class="hidden px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Staff Portal</button>
+                    <button id="nav-admin" onclick="switchTab('admin-panel')" class="hidden px-4 py-2 rounded-lg font-medium text-white bg-red-500 hover:bg-red-600 transition">Admin Tools</button>
+                </nav>
+                <button id="auth-btn" onclick="openLoginModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition shadow-sm">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+
+        <!-- TAB: VIDEOS -->
+        <section id="tab-videos" class="tab-content">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight">Trip Media</h2>
+                    <p class="text-slate-500">Search videos uploaded during our adventure.</p>
+                </div>
+                <input type="text" id="search-input" onkeyup="filterVideos()" placeholder="Search videos..." class="px-4 py-2.5 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 max-w-sm w-full outline-none">
+            </div>
+
+            <!-- Videos Grid -->
+            <div id="video-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Videos loaded dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB: ITINERARY -->
+        <section id="tab-itinerary" class="tab-content hidden-tab">
+            <h2 class="text-3xl font-extrabold tracking-tight mb-4">Trip Itinerary</h2>
+            <div class="bg-white rounded-2xl shadow-md border p-6 min-h-[600px] flex flex-col">
+                <iframe id="main-pdf-viewer" class="w-full flex-grow rounded border" src="" style="min-height: 500px;"></iframe>
+            </div>
+        </section>
+
+        <!-- TAB: CHAT PORTAL (STAFF / PRESIDENT) -->
+        <section id="tab-chat" class="tab-content hidden-tab">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 bg-white rounded-2xl border shadow-md p-6 flex flex-col h-[550px]">
+                    <h3 class="text-xl font-bold mb-4 flex justify-between">
+                        <span>Staff & President Comms</span>
+                        <span class="text-xs text-slate-400">Global Channel</span>
+                    </h3>
+                    <div id="chat-box" class="flex-grow overflow-y-auto border rounded-xl p-4 space-y-4 bg-slate-50 mb-4">
+                        <!-- Messages dynamically rendered -->
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow px-4 py-2 border rounded-lg focus:ring-2 outline-none">
+                        <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition">Send</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl border shadow-md p-6">
+                    <h3 class="text-lg font-bold mb-4">Upload Media Request</h3>
+                    <p class="text-sm text-slate-500 mb-4">Submit videos directly to Google Drive/DropBox folders, then log the link here for the Admin to review.</p>
+                    <div class="space-y-3">
+                        <input type="text" id="upload-title" placeholder="Video Title" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        <input type="text" id="upload-url" placeholder="Drive URL Link" class="w-full px-3 py-2 border rounded-lg outline-none">
+                        <button onclick="submitStaffVideo()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition">Submit to Admin</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: ADMIN CONTROL PANEL -->
+        <section id="tab-admin-panel" class="tab-content hidden-tab space-y-8">
+            <h2 class="text-3xl font-extrabold tracking-tight">System Controls</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- User Account Admin -->
+                <div class="bg-white rounded-2xl border p-6 shadow-md">
+                    <h3 class="text-xl font-bold mb-4">Family Account Manager</h3>
+                    <div class="space-y-4 mb-6">
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="text" id="admin-user-name" placeholder="Username" class="px-3 py-2 border rounded">
+                            <input type="text" id="admin-user-pass" placeholder="Password" class="px-3 py-2 border rounded">
+                            <select id="admin-user-role" class="px-3 py-2 border rounded">
+                                <option value="vip">VIP</option>
+                                <option value="staff">Staff</option>
+                                <option value="president">President</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button onclick="createUser()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium">Create User Account</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 border-b">
+                                    <th class="p-2">User</th>
+                                    <th class="p-2">Password</th>
+                                    <th class="p-2">Role</th>
+                                    <th class="p-2">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list">
+                                <!-- Users list populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Page / Banner / Maintenance Controls -->
+                <div class="bg-white rounded-2xl border p-6 shadow-md space-y-6">
+                    <div>
+                        <h3 class="text-xl font-bold mb-3">Live Itinerary Controller</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="admin-itinerary-url" placeholder="New PDF URL" class="flex-grow px-3 py-2 border rounded outline-none">
+                            <button onclick="updateItinerary()" class="bg-indigo-600 text-white px-4 py-2 rounded">Push Update</button>
+                        </div>
+                    </div>
+                    
+                    <hr>
+
+                    <div>
+                        <h3 class="text-xl font-bold mb-3">Site-Wide Alert Banner</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="admin-banner-text" placeholder="Banner Text Alert" class="w-full px-3 py-2 border rounded outline-none">
+                            <div class="flex gap-4 items-center">
+                                <label class="text-sm font-medium">Color Scheme:</label>
+                                <input type="color" id="admin-banner-color" value="#1e3a8a" class="w-12 h-8 rounded border">
+                                <button onclick="saveBannerSettings(true)" class="bg-emerald-600 text-white px-4 py-2 rounded text-sm">Activate</button>
+                                <button onclick="saveBannerSettings(false)" class="bg-rose-600 text-white px-4 py-2 rounded text-sm">Disable</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div>
+                        <h3 class="text-xl font-bold mb-3">System Maintenance Portal</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="admin-maint-text" placeholder="Custom message displayed on overlay" class="w-full px-3 py-2 border rounded outline-none">
+                            <input type="text" id="admin-maint-timer" placeholder="Timer description (e.g. 15 minutes)" class="w-full px-3 py-2 border rounded outline-none">
+                            <div class="flex gap-2">
+                                <button onclick="saveMaintenanceSettings(true)" class="bg-red-600 text-white px-4 py-2 rounded text-sm">Turn ON Overlay</button>
+                                <button onclick="saveMaintenanceSettings(false)" class="bg-slate-600 text-white px-4 py-2 rounded text-sm">Turn OFF Overlay</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border max-w-md w-full p-6 relative">
+            <button onclick="closeLoginModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 text-xl">✕</button>
+            <h3 class="text-2xl font-bold mb-4">Portal Login</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Username</label>
+                    <input type="text" id="login-username" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Password</label>
+                    <input type="password" id="login-password" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="attemptLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-sm">Submit Credentials</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE JS LOGIC -->
+    <script>
+        let currentUser = { id: null, username: "Guest", role: "guest" };
+        let currentItineraryTimestamp = null;
+        let globalSettings = {};
+
+        // RUN ON INITIAL BOOT
+        window.addEventListener('DOMContentLoaded', async () => {
+            await refreshSettings();
+            await loadVideos();
+            await loadItinerary();
+            setInterval(checkRealtimeUpdates, 5000); // Check for live state changes every 5s
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden-tab'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden-tab');
+        }
+
+        async function refreshSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                globalSettings = await res.json();
+                
+                // Handle Maintenance Banner
+                const maint = globalSettings.maintenance;
+                if (maint && maint.active && currentUser.role !== 'admin') {
+                    document.getElementById('maintenance-overlay').classList.remove('hidden');
+                    document.getElementById('maintenance-msg').innerText = maint.message;
+                    if (maint.timer) {
+                        const timerDiv = document.getElementById('maintenance-timer');
+                        timerDiv.innerText = `ETA: ${maint.timer}`;
+                        timerDiv.classList.remove('hidden');
+                    }
+                } else {
+                    document.getElementById('maintenance-overlay').classList.add('hidden');
+                }
+
+                // Handle Announcements Banner
+                const banner = globalSettings.banner;
+                const localBannerClosed = localStorage.getItem('bannerClosed') === 'true';
+                if (banner && banner.active && !localBannerClosed) {
+                    const el = document.getElementById('admin-banner');
+                    el.style.backgroundColor = banner.color;
+                    document.getElementById('banner-text').innerText = banner.text;
+                    el.classList.remove('hidden');
+                }
+            } catch (err) { console.error("Error reading system state settings", err); }
+        }
+
+        function closeBanner() {
+            document.getElementById('admin-banner').classList.add('hidden');
+            localStorage.setItem('bannerClosed', 'true');
+        }
+
+        async function checkRealtimeUpdates() {
+            await refreshSettings();
+            await checkItineraryLock();
+        }
+
+        // ITINERARY 10-SEC LOCKOUT SYSTEM
+        async function loadItinerary() {
+            const res = await fetch('/api/itinerary');
+            const data = await res.json();
+            if (data.pdf_url) {
+                document.getElementById('main-pdf-viewer').src = data.pdf_url;
+                document.getElementById('lockout-pdf-viewer').src = data.pdf_url;
+                currentItineraryTimestamp = data.last_updated;
+            }
+        }
+
+        async function checkItineraryLock() {
+            const res = await fetch('/api/itinerary');
+            const data = await res.json();
+            if (!data.pdf_url) return;
+
+            const savedStamp = localStorage.getItem('last_seen_itinerary');
+            if (savedStamp !== data.last_updated) {
+                // Lockout triggers
+                document.getElementById('itinerary-lock-screen').classList.remove('hidden');
+                let count = 10;
+                const interval = setInterval(() => {
+                    count--;
+                    document.getElementById('lockout-countdown').innerText = `Reviewing schedule: ${count}s remaining`;
+                    if (count <= 0) {
+                        clearInterval(interval);
+                        document.getElementById('itinerary-lock-screen').classList.add('hidden');
+                        localStorage.setItem('last_seen_itinerary', data.last_updated);
+                    }
+                }, 1000);
+            }
+        }
+
+        // MEDIA RENDERING & SEARCH
+        async function loadVideos() {
+            const res = await fetch('/api/videos');
+            const videos = await res.json();
+            const grid = document.getElementById('video-grid');
+            grid.innerHTML = '';
+
+            videos.forEach(video => {
+                // Only show VIP videos to logged in accounts (VIP, Staff, President, Admin)
+                if (video.category === 'vip' && currentUser.role === 'guest') return;
+
+                const card = document.createElement('div');
+                card.className = "bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition video-card";
+                card.dataset.title = video.title.toLowerCase();
+                
+                card.innerHTML = `
+                    <div class="p-5">
+                        <span class="text-xs font-bold uppercase tracking-wide text-blue-600 bg-blue-50 px-2 py-1 rounded">${video.category}</span>
+                        <h4 class="text-lg font-bold mt-2 text-slate-800">${video.title}</h4>
+                        <p class="text-sm text-slate-400 mt-1">Uploaded by: ${video.uploaded_by}</p>
+                        <a href="${video.url}" target="_blank" class="block mt-4 text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 rounded-xl text-sm transition">Play Video</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterVideos() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            document.querySelectorAll('.video-card').forEach(card => {
+                const text = card.dataset.title;
+                if (text.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // AUTHENTICATION
+        function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); }
+
+        async function attemptLogin() {
+            const u = document.getElementById('login-username').value;
+            const p = document.getElementById('login-password').value;
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (res.ok) {
+                currentUser = await res.json();
+                closeLoginModal();
+                updateUIForUser();
+            } else {
+                const err = await res.json();
+                alert(`Authentication failed: ${err.detail}`);
+            }
+        }
+
+        function updateUIForUser() {
+            const btn = document.getElementById('auth-btn');
+            const badge = document.getElementById('user-role-badge');
+            badge.innerText = currentUser.role;
+            
+            // Clean dynamic interface setups
+            document.body.className = "bg-slate-50 text-slate-800 font-sans";
+            document.getElementById('nav-staff-chat').classList.add('hidden');
+            document.getElementById('nav-admin').classList.add('hidden');
+
+            if (currentUser.role === 'admin') {
+                btn.innerText = `Sign Out (${currentUser.username})`;
+                btn.onclick = logout;
+                document.getElementById('nav-admin').classList.remove('hidden');
+                loadAdminUsers();
+            } else if (currentUser.role === 'staff' || currentUser.role === 'president') {
+                btn.innerText = `Sign Out (${currentUser.username})`;
+                btn.onclick = logout;
+                document.getElementById('nav-staff-chat').classList.remove('hidden');
+                document.body.classList.add('staff-theme');
+                loadChatMessages();
+            } else if (currentUser.role === 'vip') {
+                btn.innerText = `Sign Out (${currentUser.username})`;
+                btn.onclick = logout;
+                document.body.classList.add('vip-theme');
+            }
+            loadVideos();
+        }
+
+        function logout() {
+            currentUser = { id: null, username: "Guest", role: "guest" };
+            document.getElementById('auth-btn').innerText = "Sign In";
+            document.getElementById('auth-btn').onclick = openLoginModal;
+            updateUIForUser();
+            switchTab('videos');
+        }
+
+        // CHAT PORTAL LOGIC (GLOBAL + PRIVATE DECREES)
+        async function loadChatMessages() {
+            const res = await fetch(`/api/messages?user_id=${currentUser.id}&role=${currentUser.role}`);
+            const messages = await res.json();
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+
+            messages.forEach(msg => {
+                const wrapper = document.createElement('div');
+                wrapper.className = msg.is_red_flag ? "p-3 bg-red-100 border border-red-300 text-red-900 rounded-lg shadow-sm" : "p-3 bg-white border text-slate-800 rounded-lg shadow-sm";
+                wrapper.innerHTML = `
+                    <div class="flex justify-between items-center text-xs text-slate-400 mb-1">
+                        <span class="font-bold text-slate-600">${msg.sender_username}</span>
+                        <span>${new Date(msg.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-sm font-medium">${msg.message_text}</p>
+                `;
+                box.appendChild(wrapper);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value;
+            if (!text) return;
+
+            await fetch('/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender_id: currentUser.id,
+                    sender_username: currentUser.username,
+                    message_text: text,
+                    is_red_flag: currentUser.role === 'president'
+                })
+            });
+            input.value = '';
+            loadChatMessages();
+        }
+
+        // MEDIA SUBMISSIONS (STAFF)
+        async function submitStaffVideo() {
+            const title = document.getElementById('upload-title').value;
+            const url = document.getElementById('upload-url').value;
+            if (!title || !url) return alert("Please fill in both fields!");
+
+            await fetch('/api/videos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    url: url,
+                    category: 'general',
+                    uploaded_by: currentUser.username,
+                    is_approved: false
+                })
+            });
+            alert("Video successfully submitted to Admin dashboard for editing!");
+            document.getElementById('upload-title').value = '';
+            document.getElementById('upload-url').value = '';
+        }
+
+        // ==========================================
+        // ADMIN SERVICES LOGIC
+        // ==========================================
+        async function loadAdminUsers() {
+            const res = await fetch('/api/admin/users');
+            const users = await res.json();
+            const tbody = document.getElementById('admin-users-list');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = "border-b text-slate-700";
+                row.innerHTML = `
+                    <td class="p-2 font-semibold">${user.username}</td>
+                    <td class="p-2 font-mono">${user.password}</td>
+                    <td class="p-2 uppercase text-xs font-bold">${user.role}</td>
+                    <td class="p-2 flex gap-2">
+                        <button onclick="toggleUserLock(${user.id}, ${user.is_locked}, '${user.username}', '${user.password}', '${user.role}')" class="${user.is_locked ? 'bg-amber-500' : 'bg-slate-500'} text-white text-xs px-2 py-1 rounded">
+                            ${user.is_locked ? 'Unlock' : 'Lock'}
+                        </button>
+                        <button onclick="deleteUser(${user.id})" class="bg-red-500 text-white text-xs px-2 py-1 rounded">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function createUser() {
+            const u = document.getElementById('admin-user-name').value;
+            const p = document.getElementById('admin-user-pass').value;
+            const r = document.getElementById('admin-user-role').value;
+
+            await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p, role: r })
+            });
+            loadAdminUsers();
+        }
+
+        async function toggleUserLock(id, is_locked, u, p, r) {
+            await fetch('/api/admin/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, username: u, password: p, role: r, is_locked: !is_locked })
+            });
+            loadAdminUsers();
+        }
+
+        async function deleteUser(id) {
+            await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+            loadAdminUsers();
+        }
+
+        async function updateItinerary() {
+            const url = document.getElementById('admin-itinerary-url').value;
+            if (!url) return;
+
+            await fetch('/api/itinerary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pdf_url: url })
+            });
+            alert("Itinerary pushed live!");
+            loadItinerary();
+        }
+
+        async function saveBannerSettings(active) {
+            const text = document.getElementById('admin-banner-text').value;
+            const color = document.getElementById('admin-banner-color').value;
+
+            await fetch('/api/settings/banner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: active, text: text, color: color })
+            });
+            localStorage.setItem('bannerClosed', 'false'); // Reset close flag
+            refreshSettings();
+        }
+
+        async function saveMaintenanceSettings(active) {
+            const msg = document.getElementById('admin-maint-text').value || "Under maintenance!";
+            const timer = document.getElementById('admin-maint-timer').value || null;
+
+            await fetch('/api/settings/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: active, message: msg, timer: timer })
+            });
+            refreshSettings();
+        }
+    </script>
+</body>
+</html>
