@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Unique Dashboard layout parameters */
+    body {
+        align-items: flex-start !important;
+        background-attachment: fixed;
+    }
+    
+    .dashboard-container {
+        width: 100%;
+        max-width: 1280px;
+        z-index: 10;
+    }
+
+    .glass-nav {
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(99, 102, 241, 0.5);
+        color: #ffffff;
+    }
+
+    .lock-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(9, 10, 15, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        z-index: 999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+    }
+
+    .lock-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+</style>
+
+<!-- SITE BANNER (Controllable by Admin) -->
+{% if settings.banner_enabled %}
+<div class="fixed top-0 left-0 right-0 z-50 text-white text-center py-3 text-sm font-semibold tracking-wide shadow-lg" 
+     style="background-color: {{ settings.banner_color }};">
+    <span>🇨🇦 {{ settings.banner_text }}</span>
+</div>
+<div class="h-11"></div> <!-- Pushes layout below the fixed banner -->
+{% endif %}
+
+<div class="dashboard-container mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-4">
+    
+    <!-- HEADER NAV (Liquid Glass Style) -->
+    <header class="glass-nav rounded-2xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">🏔️</span>
+            <div>
+                <h1 class="text-xl font-bold text-white tracking-wide">Canada Family Trip</h1>
+                <p class="text-xs text-indigo-300">Logged in as: <span class="font-semibold text-white">{{ username }}</span> [{{ role.upper() }}]</p>
+            </div>
+        </div>
+
+        <!-- Real-time Video Search -->
+        <div class="relative w-full md:w-80">
+            <input type="text" id="search-bar" onkeyup="filterVideos()" placeholder="Search videos..." 
+                   class="w-full px-4 py-2 rounded-lg glass-input text-sm pl-10">
+            <span class="absolute left-3.5 top-2.5 text-gray-400 text-sm">🔍</span>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="flex items-center gap-3">
+            {% if role == 'admin' %}
+            <a href="/admin" class="px-4 py-2 bg-red-600/30 hover:bg-red-600/50 border border-red-500/30 text-red-200 text-xs font-semibold rounded-lg transition">Admin Controls</a>
+            {% endif %}
+            
+            {% if user %}
+            <a href="/logout" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold rounded-lg transition">Log Out</a>
+            {% else %}
+            <a href="/login" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">Login Area</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- TAB SELECTORS -->
+    <nav class="flex gap-2 border-b border-white/10 pb-4 mb-8 overflow-x-auto">
+        <button onclick="switchTab('videos-tab')" id="btn-videos-tab" class="tab-btn active px-5 py-2.5 rounded-lg border border-transparent text-sm font-semibold text-gray-400 hover:text-white transition">
+            📺 Video Vault
+        </button>
+        <button onclick="switchTab('itinerary-tab')" id="btn-itinerary-tab" class="tab-btn px-5 py-2.5 rounded-lg border border-transparent text-sm font-semibold text-gray-400 hover:text-white transition">
+            📅 Trip Itinerary
+        </button>
+        
+        {% if role in ['vip', 'admin'] %}
+        <button onclick="switchTab('requests-tab')" id="btn-requests-tab" class="tab-btn px-5 py-2.5 rounded-lg border border-transparent text-sm font-semibold text-gray-400 hover:text-white transition">
+            ⭐ Custom Requests
+        </button>
+        {% endif %}
+
+        {% if role in ['worker', 'president', 'admin'] %}
+        <button onclick="switchTab('worker-tab')" id="btn-worker-tab" class="tab-btn px-5 py-2.5 rounded-lg border border-transparent text-sm font-semibold text-gray-400 hover:text-white transition">
+            💼 Worker Portal
+        </button>
+        {% endif %}
+    </nav>
+
+    <!-- CONTENT PORTALS -->
+    <main>
+        <!-- 1. VIDEO VAULT TAB -->
+        <div id="videos-tab" class="tab-content">
+            <h2 class="text-2xl font-bold text-white mb-6">Shared Videos</h2>
+            
+            {% if not videos %}
+            <div class="glass-card rounded-xl p-8 text-center text-gray-400">
+                <p>No shared videos uploaded yet. Admin will update links soon!</p>
+            </div>
+            {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="video-grid">
+                {% for video in videos %}
+                <div class="video-card glass-card rounded-xl overflow-hidden hover:scale-[1.02] transition-transform duration-300" data-title="{{ video.title.lower() }}">
+                    <div class="relative aspect-video bg-black/40">
+                        <!-- Custom Embed Parser designed to handle raw Google Drive URLs dynamically -->
+                        <iframe class="absolute inset-0 w-full h-full" src="{{ video.url }}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    <div class="p-4">
+                        <span class="px-2.5 py-1 text-[10px] font-bold tracking-widest uppercase rounded bg-indigo-500/25 text-indigo-300">
+                            {{ video.category.upper() }}
+                        </span>
+                        <h3 class="text-base font-semibold text-white mt-2">{{ video.title }}</h3>
+                        <p class="text-xs text-gray-400 mt-1">Uploaded {{ video.created_at.split('T')[0] }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 2. TRIP ITINERARY TAB -->
+        <div id="itinerary-tab" class="tab-content hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Daily Itineraries</h2>
+            
+            {% if not itinerary_items %}
+            <div class="glass-card rounded-xl p-8 text-center text-gray-400">
+                <p>No itinerary entries logged yet. Check back closer to trip departure!</p>
+            </div>
+            {% else %}
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Sidebar Nav for Days -->
+                <div class="lg:col-span-1 space-y-2">
+                    {% for item in itinerary_items %}
+                    <button onclick="viewDay('{{ item.id }}', '{{ item.pdf_url }}')" 
+                            class="day-btn w-full text-left px-4 py-3 rounded-lg glass-card text-gray-300 text-sm font-semibold hover:border-indigo-500/40 transition">
+                        Day {{ item.id }}: {{ item.title }}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <!-- PDF Renderer Container -->
+                <div class="lg:col-span-3 glass-card rounded-xl p-4 min-h-[600px] flex flex-col justify-between">
+                    <div id="pdf-viewer" class="w-full h-[600px] bg-black/20 rounded-lg flex items-center justify-center border border-white/5 overflow-hidden">
+                        <p class="text-gray-400 text-sm" id="viewer-placeholder">Select a day from the left sidebar to render the itinerary document.</p>
+                        <iframe id="pdf-iframe" class="w-full h-full hidden" src="" frameborder="0"></iframe>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 3. CUSTOM REQUESTS (Future Scope) -->
+        <div id="requests-tab" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-8 max-w-xl mx-auto text-center">
+                <span class="text-4xl">🌟</span>
+                <h2 class="text-xl font-bold text-white mt-4">VIP Custom Requests</h2>
+                <p class="text-gray-400 text-sm mt-2">Have a specific event, trail, or landscape you want covered? Drop a request down below for our media workers.</p>
+                <div class="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg text-xs text-indigo-200">
+                    Feature development active — launching in Phase 4.
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. WORKER PORTAL (Future Scope) -->
+        <div id="worker-tab" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-8 max-w-xl mx-auto text-center">
+                <span class="text-4xl">💼</span>
+                <h2 class="text-xl font-bold text-white mt-4">Worker Portal</h2>
+                <p class="text-gray-400 text-sm mt-2">Access the worker submission queues, media editing logs, and real-time chat environments.</p>
+                <div class="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg text-xs text-indigo-200">
+                    Feature development active — launching in Phase 4.
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 10-SECOND ITINERARY FORCE OVERLAY -->
+<div id="itinerary-lock" class="lock-overlay">
+    <div class="glass-card max-w-md p-8 rounded-2xl text-center mx-4">
+        <span class="text-5xl">📌</span>
+        <h2 class="text-2xl font-bold text-white mt-4">Updated Itinerary Alert!</h2>
+        <p class="text-gray-400 text-sm mt-2 leading-relaxed">
+            The itinerary was updated recently. You must check the itinerary page before browsing.
+        </p>
+        <div class="my-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-xl" id="lock-timer">
+                10
+            </div>
+        </div>
+        <button id="lock-btn" disabled onclick="acknowledgeItinerary()" 
+                class="w-full py-3 bg-white/5 border border-white/10 text-gray-500 font-semibold rounded-lg cursor-not-allowed transition">
+            Please Review (10s)
+        </button>
+    </div>
+</div>
+
+<!-- CLIENT JAVASCRIPT LOGIC -->
+<script>
+    // System metadata injected from Python environment
+    const currentItineraryVersion = parseInt("{{ current_itinerary_version }}") || 1;
+    const isUserAdmin = "{{ role }}" === "admin";
+
+    // Dynamic Client-side Tab Switcher
+    function switchTab(tabId) {
+        // Prevent tab switching if locked
+        if (document.getElementById('itinerary-lock').classList.contains('active')) {
+            return;
+        }
+
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-' + tabId).classList.add('active');
+    }
+
+    // Dynamic Video Filtering Engine
+    function filterVideos() {
+        const query = document.getElementById('search-bar').value.toLowerCase();
+        const cards = document.querySelectorAll('.video-card');
+        
+        cards.forEach(card => {
+            const title = card.getAttribute('data-title');
+            if (title.includes(query)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Daily PDF renderer loader
+    function viewDay(dayId, pdfUrl) {
+        document.getElementById('viewer-placeholder').classList.add('hidden');
+        
+        const iframe = document.getElementById('pdf-iframe');
+        iframe.src = pdfUrl;
+        iframe.classList.remove('hidden');
+        
+        // Style selected active day button
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        });
+        event.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)';
+    }
+
+    // 10-Second Countdown Execution Engine
+    window.addEventListener('DOMContentLoaded', () => {
+        // Skip lock for admins to prevent setup friction
+        if (isUserAdmin) return;
+
+        const lastSeenVersion = parseInt(localStorage.getItem('seen_itinerary_version')) || 0;
+
+        if (lastSeenVersion < currentItineraryVersion) {
+            // Force user to Itinerary View tab instantly
+            switchTab('itinerary-tab');
+            
+            // Show non-dismissible lock block
+            const lockOverlay = document.getElementById('itinerary-lock');
+            lockOverlay.classList.add('active');
+
+            let timeLeft = 10;
+            const timerEl = document.getElementById('lock-timer');
+            const actionBtn = document.getElementById('lock-btn');
+
+            const countdown = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    
+                    // Style Button as actionable and enable
+                    actionBtn.removeAttribute('disabled');
+                    actionBtn.classList.remove('bg-white/5', 'text-gray-500', 'cursor-not-allowed');
+                    actionBtn.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-600', 'text-white', 'hover:from-indigo-600', 'hover:to-purple-700');
+                    actionBtn.textContent = "Acknowledge";
+                    actionBtn.style.cursor = "pointer";
+                }
+            }, 1000);
+        }
+    });
+
+    function acknowledgeItinerary() {
+        localStorage.setItem('seen_itinerary_version', currentItineraryVersion);
+        document.getElementById('itinerary-lock').classList.remove('active');
+    }
+</script>
+{% endblock %}
