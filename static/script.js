@@ -35,13 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById("admin-tab-btn").style.display = "inline-block";
         }
 
-        // Admin doesn't upload videos to himself — that card is staff/president only
         const driveSection = document.getElementById("staff-drive-section");
         if (driveSection) {
             driveSection.style.display = (userRole === "staff" || userRole === "president") ? "block" : "none";
         }
 
-        // Video request area is VIP-only
         const requestSection = document.getElementById("vip-request-section");
         if (requestSection) {
             requestSection.style.display = (userRole === "vip") ? "block" : "none";
@@ -74,7 +72,6 @@ async function loadSiteSettings() {
         siteSettings = await response.json();
 
         if (siteSettings.banner_active) {
-            // Show as a popup first — dismissing it reveals the persistent top banner
             const popup = document.getElementById("banner-popup-modal");
             const popupText = document.getElementById("banner-popup-text");
             popupText.innerText = siteSettings.banner_text;
@@ -116,8 +113,6 @@ function closeBanner() {
     document.getElementById("alert-banner").style.display = "none";
 }
 
-// Non-blocking itinerary review: switches to the tab and briefly holds
-// navigation so the PDF is actually visible (never covers it with an overlay).
 function checkItineraryChanged() {
     const lastViewed = localStorage.getItem("last_viewed_itinerary");
     const serverUpdated = siteSettings.itinerary_last_updated;
@@ -208,7 +203,7 @@ function renderVideos() {
             </div>
         `;
 
-        if (video.is_vip_only) {
+        if (video.category === 'vip' || video.is_vip_only) {
             vipGrid.appendChild(card);
             vipCount++;
         } else {
@@ -554,7 +549,7 @@ function setupForms() {
     }
 }
 
-// --- ADMIN: POPUP TARGET DROPDOWN (any individual account, incl. VIP) ---
+// --- ADMIN: POPUP TARGET DROPDOWN ---
 async function populatePopupTargets() {
     const select = document.getElementById("popup-target");
     if (!select) return;
