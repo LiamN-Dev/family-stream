@@ -3,20 +3,28 @@ let allVideos = [];
 let siteSettings = {};
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Set the role based styling theme class
+    // 1. Role-based theme
     const body = document.getElementById("app-body");
     body.className = `theme-${userRole}`;
 
-    // 2. Adjust greeting header
+    // 2. Personal favorite-color override (on top of the role theme)
+    if (typeof userColor === "string" && /^#[0-9a-fA-F]{6}$/.test(userColor)) {
+        document.documentElement.style.setProperty("--accent", userColor);
+        document.documentElement.style.setProperty("--accent-ink", getContrastColor(userColor));
+        document.documentElement.style.setProperty("--accent-soft", userColor + "29");
+        document.documentElement.style.setProperty("--accent-line", userColor + "66");
+    }
+
+    // 3. Greeting + auth button
     const greeting = document.getElementById("user-greeting");
     const authBtn = document.getElementById("auth-btn");
-    
+
     if (userRole !== "guest") {
-        greeting.innerHTML = `Welcome, <strong>${userName}</strong> (${userRole.toUpperCase()})`;
+        const niceName = (typeof userDisplayName === "string" && userDisplayName) ? userDisplayName : userName;
+        greeting.innerHTML = `Welcome, <strong>${niceName}</strong> (${userRole.toUpperCase()})`;
         authBtn.innerText = "Lock Portal";
         authBtn.href = "/logout";
-        
-        // Show role-specific UI options
+
         if (userRole === "vip" || userRole === "staff" || userRole === "president" || userRole === "admin") {
             document.getElementById("vip-tab-btn").style.display = "inline-block";
         }
@@ -26,126 +34,141 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (userRole === "admin") {
             document.getElementById("admin-tab-btn").style.display = "inline-block";
         }
+
+        // Admin doesn't upload videos to himself — that card is staff/president only
+        const driveSection = document.getElementById("staff-drive-section");
+        if (driveSection) {
+            driveSection.style.display = (userRole === "staff" || userRole === "president") ? "block" : "none";
+        }
+
+        // Video request area is VIP-only
+        const requestSection = document.getElementById("vip-request-section");
+        if (requestSection) {
+            requestSection.style.display = (userRole === "vip") ? "block" : "none";
+        }
     }
 
-    // 3. Fetch Global Settings from DB (includes Itinerary & Banners)
     await loadSiteSettings();
-
-    // 4. Check for itinerary updates -> Handles the forced 10-second lock
     checkItineraryChanged();
-
-    // 5. Fetch stream video files
     fetchVideos();
-
-    // 6. Handle targeted alerts
     checkPopups();
-
-    // Setup active listeners
     setupForms();
+
+    if (userRole === "vip") loadMyVideoRequests();
+    if (userRole === "staff" || userRole === "president" || userRole === "admin") populateChatChannels();
 });
 
-// --- SETTINGS & ITINERARY CHANGED ENGINE ---
+function getContrastColor(hex) {
+    hex = hex.replace("#", "");
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.6 ? "#12201a" : "#ffffff";
+}
+
+// --- SETTINGS / BANNER-POPUP / ITINERARY ---
 async function loadSiteSettings() {
     try {
         const response = await fetch("/api/settings");
         siteSettings = await response.json();
-        
-        // Render Active Dynamic Banner Alert
-        const banner = document.getElementById("alert-banner");
+
         if (siteSettings.banner_active) {
-            banner.style.backgroundColor = siteSettings.banner_color;
-            document.getElementById("banner-content").innerText = siteSettings.banner_text;
-            banner.style.display = "block";
+            // Show as a popup first — dismissing it reveals the persistent top banner
+            const popup = document.getElementById("banner-popup-modal");
+            const popupText = document.getElementById("banner-popup-text");
+            popupText.innerText = siteSettings.banner_text;
+            popup.querySelector(".popup-box").style.borderColor = siteSettings.banner_color;
+            popup.style.display = "flex";
         }
 
-        // Set PDF frame source
-        document.getElementById("itinerary-frame").src = siteSettings.itinerary_pdf_url;
+        document.getElementById("itinerary-frame").src = siteSettings.itinerary_pdf_url || "about:blank";
 
-        // Auto-fill form values in the Admin panel if they are current admin
         if (userRole === "admin") {
             document.getElementById("m-toggle").checked = siteSettings.maintenance_active;
-            document.getElementById("m-msg").value = siteSettings.maintenance_message;
-            document.getElementById("m-timer").value = siteSettings.maintenance_timer;
+            document.getElementById("m-msg").value = siteSettings.maintenance_message || "";
+            document.getElementById("m-timer").value = siteSettings.maintenance_timer || "";
             document.getElementById("b-toggle").checked = siteSettings.banner_active;
-            document.getElementById("b-text").value = siteSettings.banner_text;
-            document.getElementById("b-color").value = siteSettings.banner_color;
-            document.getElementById("itinerary-url-input").value = siteSettings.itinerary_pdf_url;
-            
-            // Trigger load routines for Admin lists
+            document.getElementById("b-text").value = siteSettings.banner_text || "";
+            document.getElementById("b-color").value = siteSettings.banner_color || "#4f46e5";
+            document.getElementById("itinerary-url-input").value = siteSettings.itinerary_pdf_url || "";
+
             loadAdminUsers();
-            loadAdminSubmissions();
+            populatePopupTargets();
+            loadVideoRequestQueue();
         }
     } catch (e) {
         console.error("Error setting portal configurations:", e);
     }
 }
 
-// Check if itinerary is changed -> runs the forced 10s countdown if a newer PDF timestamp is present!
+function dismissBannerPopup() {
+    document.getElementById("banner-popup-modal").style.display = "none";
+    if (siteSettings.banner_active) {
+        const banner = document.getElementById("alert-banner");
+        banner.style.backgroundColor = siteSettings.banner_color;
+        document.getElementById("banner-content").innerText = siteSettings.banner_text;
+        banner.style.display = "block";
+    }
+}
+
+function closeBanner() {
+    document.getElementById("alert-banner").style.display = "none";
+}
+
+// Non-blocking itinerary review: switches to the tab and briefly holds
+// navigation so the PDF is actually visible (never covers it with an overlay).
 function checkItineraryChanged() {
     const lastViewed = localStorage.getItem("last_viewed_itinerary");
     const serverUpdated = siteSettings.itinerary_last_updated;
 
     if (!serverUpdated) return;
+    if (lastViewed && new Date(lastViewed) >= new Date(serverUpdated)) return;
 
-    // If local viewed date is empty, or older than the server update timestamp
-    if (!lastViewed || new Date(lastViewed) < new Date(serverUpdated)) {
-        // Switch to the itinerary tab first
-        switchTab('itinerary-tab');
-        
-        // Open the unescapable modal lock overlay
-        const lockModal = document.getElementById("itinerary-lock-modal");
-        lockModal.style.display = "flex";
+    switchTab('itinerary-tab', true);
 
-        let countdown = 10;
-        const countDisplay = document.getElementById("lock-countdown");
-        const dismissBtn = document.getElementById("lock-dismiss-btn");
+    const lockBar = document.getElementById("itinerary-lock-bar");
+    const countdownEl = document.getElementById("itinerary-lock-countdown");
+    lockBar.style.display = "flex";
 
-        const interval = setInterval(() => {
-            countdown--;
-            countDisplay.innerText = `${countdown} seconds remaining`;
-            if (countdown <= 0) {
-                clearInterval(interval);
-                countDisplay.innerText = "Itinerary fully reviewed!";
-                dismissBtn.removeAttribute("disabled");
-                dismissBtn.innerText = "Dismiss & Continue";
-            }
-        }, 1000);
-    }
-}
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.add("nav-locked"));
+    document.getElementById("video-search").setAttribute("disabled", "disabled");
 
-function dismissItineraryLock() {
-    // Record current review in user's browser storage
-    localStorage.setItem("last_viewed_itinerary", new Date().toISOString());
-    document.getElementById("itinerary-lock-modal").style.display = "none";
+    let countdown = 10;
+    const interval = setInterval(() => {
+        countdown--;
+        countdownEl.innerText = countdown;
+        if (countdown <= 0) {
+            clearInterval(interval);
+            lockBar.style.display = "none";
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("nav-locked"));
+            document.getElementById("video-search").removeAttribute("disabled");
+            localStorage.setItem("last_viewed_itinerary", new Date().toISOString());
+        }
+    }, 1000);
 }
 
 // --- TAB ROUTING ---
-function switchTab(tabId) {
-    // Block switching if the itinerary lock modal is active
-    if (document.getElementById("itinerary-lock-modal").style.display === "flex") {
-        return;
-    }
+function switchTab(tabId, force) {
+    if (!force && document.querySelector(".tab-btn.nav-locked")) return;
 
     currentTab = tabId;
     document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-    
+
     document.getElementById(tabId).classList.add("active");
-    
-    // Find matching button to set active
-    const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn => 
-        btn.getAttribute("onclick").includes(tabId)
+
+    const activeBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn =>
+        btn.getAttribute("onclick") && btn.getAttribute("onclick").includes(tabId)
     );
     if (activeBtn) activeBtn.classList.add("active");
 
-    // Contextual actions
     if (tabId === 'chat-tab') {
         loadChats();
-        loadStaffSubmissions();
     }
 }
 
-// --- VIDEO DATABASE SEARCH & RENDERING ---
+// --- VIDEOS ---
 async function fetchVideos() {
     try {
         const response = await fetch("/api/videos");
@@ -163,10 +186,8 @@ function renderVideos() {
     generalGrid.innerHTML = "";
     vipGrid.innerHTML = "";
 
-    const filtered = allVideos.filter(video => {
-        const query = document.getElementById("video-search").value.toLowerCase();
-        return video.title.toLowerCase().includes(query) || video.uploaded_by.toLowerCase().includes(query);
-    });
+    const query = document.getElementById("video-search").value.toLowerCase();
+    const filtered = allVideos.filter(video => video.title.toLowerCase().includes(query));
 
     let publicCount = 0;
     let vipCount = 0;
@@ -177,7 +198,6 @@ function renderVideos() {
         card.innerHTML = `
             <h3>${video.title}</h3>
             <iframe src="https://www.youtube.com/embed/${video.youtube_id}" allowfullscreen></iframe>
-            <p class="meta">Captured by: ${video.uploaded_by}</p>
             <div class="comments-section">
                 <h4>Comments</h4>
                 <div class="comments-list" id="comments-list-${video.id}">Loading conversations...</div>
@@ -195,26 +215,26 @@ function renderVideos() {
             generalGrid.appendChild(card);
             publicCount++;
         }
-        
+
         loadComments(video.id);
     });
 
     if (publicCount === 0) generalGrid.innerHTML = "<p class='status-msg'>No public videos found matching that search.</p>";
-    if (vipCount === 0) vipGrid.innerHTML = "<p class='status-msg'>No VIP bonus files posted yet.</p>";
+    if (vipCount === 0) vipGrid.innerHTML = "<p class='status-msg'>No VIP bonus videos posted yet.</p>";
 }
 
 function filterVideos() {
     renderVideos();
 }
 
-// --- COMMENT THREADS ---
+// --- COMMENTS ---
 async function loadComments(videoId) {
     const listDiv = document.getElementById(`comments-list-${videoId}`);
     try {
         const response = await fetch(`/api/comments/${videoId}`);
         const comments = await response.json();
         listDiv.innerHTML = "";
-        
+
         if (comments.length === 0) {
             listDiv.innerHTML = "<p class='meta'>No comments yet.</p>";
             return;
@@ -227,14 +247,14 @@ async function loadComments(videoId) {
             listDiv.appendChild(item);
         });
     } catch (e) {
-        listDiv.innerHTML = "Error loading chat timeline.";
+        listDiv.innerHTML = "Error loading comments.";
     }
 }
 
 async function submitComment(event, videoId) {
     event.preventDefault();
     const textInput = document.getElementById(`text-${videoId}`);
-    
+
     const response = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -245,28 +265,117 @@ async function submitComment(event, videoId) {
         textInput.value = "";
         loadComments(videoId);
     } else {
-        alert("Must log in first to send comments!");
+        alert("Something went wrong posting that comment.");
     }
 }
 
-// --- MESSENGER & CHAT SYSTEM (STAFF / PRES / ADMIN) ---
+// --- VIP: REQUEST A VIDEO ---
+async function submitVideoRequest(event) {
+    event.preventDefault();
+    const input = document.getElementById("video-request-text");
+    const res = await fetch("/api/video-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input.value })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        input.value = "";
+        loadMyVideoRequests();
+    } else {
+        alert(data.error || "Could not send your request.");
+    }
+}
+
+async function loadMyVideoRequests() {
+    const list = document.getElementById("my-video-requests-list");
+    if (!list) return;
+    try {
+        const res = await fetch("/api/video-requests");
+        const data = await res.json();
+        list.innerHTML = "";
+        if (data.length === 0) {
+            list.innerHTML = "No requests sent yet.";
+            return;
+        }
+        data.forEach(r => {
+            const div = document.createElement("div");
+            div.className = "comment-item";
+            div.innerHTML = `${r.request_text} <br><span class="meta">Status: ${r.status.toUpperCase()}</span>`;
+            list.appendChild(div);
+        });
+    } catch (e) {
+        list.innerHTML = "Could not load your requests.";
+    }
+}
+
+async function loadVideoRequestQueue() {
+    const panel = document.getElementById("admin-video-requests");
+    if (!panel) return;
+    try {
+        const res = await fetch("/api/video-requests");
+        const data = await res.json();
+        panel.innerHTML = "";
+        const pending = data.filter(r => r.status === "pending");
+        if (pending.length === 0) {
+            panel.innerHTML = "<p class='meta'>No pending video requests.</p>";
+            return;
+        }
+        pending.forEach(r => {
+            const div = document.createElement("div");
+            div.className = "comment-item";
+            div.innerHTML = `
+                <strong>${r.requested_by}</strong>: ${r.request_text}
+                <div style="margin-top:8px; display:flex; gap:8px;">
+                    <button type="button" class="mini-btn" onclick="setRequestStatus(${r.id}, 'fulfilled')">Mark Fulfilled</button>
+                    <button type="button" class="mini-btn danger" onclick="setRequestStatus(${r.id}, 'dismissed')">Dismiss</button>
+                </div>
+            `;
+            panel.appendChild(div);
+        });
+    } catch (e) {
+        panel.innerHTML = "Could not load video requests.";
+    }
+}
+
+async function setRequestStatus(id, status) {
+    await fetch(`/api/admin/video-requests/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+    });
+    loadVideoRequestQueue();
+}
+
+// --- MESSENGER ---
+async function populateChatChannels() {
+    const select = document.getElementById("chat-channel");
+    try {
+        const res = await fetch("/api/directory");
+        const people = await res.json();
+        people.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.username;
+            opt.innerText = `Direct Message: ${p.display_name || p.username} (${p.role})`;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error("Could not load directory:", e);
+    }
+}
+
 async function loadChats() {
     const channel = document.getElementById("chat-channel").value;
     const chatBox = document.getElementById("chat-messages");
-    
+
     try {
         const response = await fetch("/api/chat");
         const messages = await response.json();
         chatBox.innerHTML = "";
 
-        // Filter based on selected channel
         const filtered = messages.filter(m => {
-            if (channel === 'global_staff') {
-                return m.receiver === 'global_staff';
-            } else {
-                // Direct message channel to admin
-                return (m.receiver === 'admin' || m.sender === 'admin') && m.receiver !== 'global_staff';
-            }
+            if (channel === 'global_staff') return m.receiver === 'global_staff';
+            return (m.sender === channel || m.receiver === channel) && m.receiver !== 'global_staff';
         });
 
         if (filtered.length === 0) {
@@ -276,10 +385,9 @@ async function loadChats() {
 
         filtered.forEach(m => {
             const div = document.createElement("div");
-            // If flagged as a presidential decree, highlight the box in red!
             div.className = `chat-msg ${m.is_flagged_red ? 'decree' : ''}`;
             div.innerHTML = `
-                <strong style="color: var(--accent);">${m.sender}</strong> 
+                <strong style="color: var(--accent);">${m.sender}</strong>
                 <span class="meta">${new Date(m.created_at).toLocaleTimeString()}</span>
                 <p style="margin: 5px 0 0 0;">${m.message}</p>
             `;
@@ -287,11 +395,11 @@ async function loadChats() {
         });
         chatBox.scrollTop = chatBox.scrollHeight;
     } catch (e) {
-        chatBox.innerHTML = "Error rendering chat channels.";
+        chatBox.innerHTML = "Error rendering chat channel.";
     }
 }
 
-// --- POPUP SYSTEM ---
+// --- TARGETED / SITE-WIDE POPUPS ---
 async function checkPopups() {
     try {
         const response = await fetch("/api/popups");
@@ -311,45 +419,14 @@ async function checkPopups() {
 async function dismissCustomPopup() {
     const alertModal = document.getElementById("custom-alert-modal");
     const popupId = alertModal.dataset.popupId;
-    
+
     await fetch(`/api/popups/read/${popupId}`, { method: "POST" });
     alertModal.style.display = "none";
-    
-    // Check for any consecutive alerts
     checkPopups();
 }
 
-// --- STAFF DRIVE SUBMISSIONS ---
-async function loadStaffSubmissions() {
-    const list = document.getElementById("my-submissions-list");
-    try {
-        const res = await fetch("/api/submissions");
-        const data = await res.json();
-        list.innerHTML = "";
-        
-        if (data.length === 0) {
-            list.innerHTML = "No drafts uploaded yet.";
-            return;
-        }
-
-        data.forEach(sub => {
-            const div = document.createElement("div");
-            div.className = "comment-item";
-            div.innerHTML = `
-                <strong>${sub.title}</strong><br>
-                <a href="${sub.drive_url}" target="_blank">View Folder File</a><br>
-                Status: <span style="font-weight: bold; text-transform: uppercase;">${sub.status}</span>
-            `;
-            list.appendChild(div);
-        });
-    } catch (e) {
-        list.innerHTML = "Failed to load submitted list.";
-    }
-}
-
-// --- FORM SUBMISSION LISTENER SETUPS ---
+// --- FORM SETUP ---
 function setupForms() {
-    // Handle Chat Submissions
     document.getElementById("chat-send-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("chat-input");
@@ -364,36 +441,43 @@ function setupForms() {
         if (res.ok) {
             input.value = "";
             loadChats();
+        } else {
+            const data = await res.json();
+            alert(data.error || "Message failed to send.");
         }
     });
 
-    // Handle Staff Google Drive Form
-    const driveForm = document.getElementById("drive-upload-form");
-    if (driveForm) {
-        driveForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const title = document.getElementById("drive-video-title").value;
-            const driveUrl = document.getElementById("drive-video-url").value;
+    const requestForm = document.getElementById("video-request-form");
+    if (requestForm) requestForm.addEventListener("submit", submitVideoRequest);
 
-            const res = await fetch("/api/submissions", {
+    const addVideoForm = document.getElementById("admin-add-video-form");
+    if (addVideoForm) {
+        addVideoForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const title = document.getElementById("new-video-title").value;
+            const youtubeUrl = document.getElementById("new-video-url").value;
+            const isVip = document.getElementById("new-video-vip").checked;
+
+            const res = await fetch("/api/admin/videos", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, driveUrl })
+                body: JSON.stringify({ title, youtubeUrl, isVip })
             });
-
+            const data = await res.json();
             if (res.ok) {
-                driveForm.reset();
-                loadStaffSubmissions();
+                addVideoForm.reset();
+                fetchVideos();
+                alert("Video added to the feed!");
+            } else {
+                alert(data.error || "Could not add that video.");
             }
         });
     }
 
-    // Handle Admin Global Settings Save
     const adminSettingsForm = document.getElementById("admin-settings-form");
     if (adminSettingsForm) {
         adminSettingsForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            
             const payload = {
                 maintenance_active: document.getElementById("m-toggle").checked,
                 maintenance_message: document.getElementById("m-msg").value,
@@ -409,39 +493,44 @@ function setupForms() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-
+            const data = await res.json();
             if (res.ok) {
-                alert("Site configuration options saved globally!");
+                alert("Site configuration saved!");
                 window.location.reload();
+            } else {
+                alert("Error saving settings: " + (data.error || "unknown error"));
             }
         });
     }
 
-    // Handle Admin User Creation
     const adminUserForm = document.getElementById("admin-create-user-form");
     if (adminUserForm) {
         adminUserForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const username = document.getElementById("new-user-name").value;
-            const password = document.getElementById("new-user-pass").value;
-            const role = document.getElementById("new-user-role").value;
+            const payload = {
+                username: document.getElementById("new-user-name").value,
+                password: document.getElementById("new-user-pass").value,
+                display_name: document.getElementById("new-user-display").value,
+                favorite_color: document.getElementById("new-user-color").value,
+                role: document.getElementById("new-user-role").value
+            };
 
             const res = await fetch("/api/admin/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, role })
+                body: JSON.stringify(payload)
             });
-
+            const data = await res.json();
             if (res.ok) {
                 adminUserForm.reset();
                 loadAdminUsers();
+                populatePopupTargets();
             } else {
-                alert("Error: Username must be unique.");
+                alert(data.error || "Error: username must be unique.");
             }
         });
     }
 
-    // Handle Admin Target Popup Alerts
     const adminPopupForm = document.getElementById("admin-popup-form");
     if (adminPopupForm) {
         adminPopupForm.addEventListener("submit", async (e) => {
@@ -454,17 +543,40 @@ function setupForms() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ target, message })
             });
-
+            const data = await res.json();
             if (res.ok) {
                 adminPopupForm.reset();
                 alert("Targeted alert pushed successfully!");
+            } else {
+                alert(data.error || "Could not push that alert.");
             }
         });
     }
 }
 
-// --- ADMIN CONTROL: LOADER CALLS ---
+// --- ADMIN: POPUP TARGET DROPDOWN (any individual account, incl. VIP) ---
+async function populatePopupTargets() {
+    const select = document.getElementById("popup-target");
+    if (!select) return;
+    const dynamicOptions = select.querySelectorAll("option[data-dynamic]");
+    dynamicOptions.forEach(o => o.remove());
 
+    try {
+        const res = await fetch("/api/admin/users");
+        const users = await res.json();
+        users.forEach(u => {
+            const opt = document.createElement("option");
+            opt.value = u.username;
+            opt.dataset.dynamic = "true";
+            opt.innerText = `${u.display_name || u.username} (${u.role})`;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error("Could not load user directory for popups:", e);
+    }
+}
+
+// --- ADMIN: USER MANAGEMENT ---
 async function loadAdminUsers() {
     const tbody = document.getElementById("admin-user-table-body");
     try {
@@ -477,12 +589,15 @@ async function loadAdminUsers() {
             if (u.is_locked) tr.className = "locked-user";
 
             tr.innerHTML = `
-                <td><strong>${u.username}</strong></td>
+                <td>
+                    <strong>${u.display_name || u.username}</strong><br>
+                    <span class="meta">@${u.username}</span>
+                </td>
                 <td>
                     <span class="pass-text" id="pass-field-${u.id}" onclick="revealPassword('${u.id}', '${u.password}')">•••••••• (Reveal)</span>
                 </td>
                 <td>
-                    <select onchange="updateUserRole(${u.id}, this.value, ${u.is_locked}, '${u.username}', '${u.password}')">
+                    <select onchange="updateUserRole(${u.id}, this.value, ${u.is_locked}, '${u.username}', '${u.password}', '${u.display_name || u.username}', '${u.favorite_color || '#47a68c'}')">
                         <option value="vip" ${u.role === 'vip' ? 'selected' : ''}>VIP</option>
                         <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>Staff</option>
                         <option value="president" ${u.role === 'president' ? 'selected' : ''}>President</option>
@@ -490,10 +605,13 @@ async function loadAdminUsers() {
                     </select>
                 </td>
                 <td>
-                    <input type="checkbox" ${u.is_locked ? 'checked' : ''} onchange="toggleUserLock(${u.id}, this.checked, '${u.role}', '${u.username}', '${u.password}')">
+                    <span class="color-dot" style="background:${u.favorite_color || '#47a68c'}"></span>
                 </td>
                 <td>
-                    <button class="nav-btn" style="background-color: var(--accent-red); padding: 4px 10px; font-size: 11px;" onclick="deleteUser(${u.id})">Delete</button>
+                    <input type="checkbox" ${u.is_locked ? 'checked' : ''} onchange="toggleUserLock(${u.id}, this.checked, '${u.role}', '${u.username}', '${u.password}', '${u.display_name || u.username}', '${u.favorite_color || '#47a68c'}')">
+                </td>
+                <td>
+                    <button class="mini-btn danger" onclick="deleteUser(${u.id})">Delete</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -512,20 +630,20 @@ function revealPassword(userId, passwordText) {
     }
 }
 
-async function updateUserRole(userId, newRole, isLocked, username, password) {
+async function updateUserRole(userId, newRole, isLocked, username, password, displayName, favoriteColor) {
     await fetch(`/api/admin/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole, is_locked: isLocked, username, password })
+        body: JSON.stringify({ role: newRole, is_locked: isLocked, username, password, display_name: displayName, favorite_color: favoriteColor })
     });
     loadAdminUsers();
 }
 
-async function toggleUserLock(userId, isLocked, role, username, password) {
+async function toggleUserLock(userId, isLocked, role, username, password, displayName, favoriteColor) {
     await fetch(`/api/admin/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, is_locked: isLocked, username, password })
+        body: JSON.stringify({ role, is_locked: isLocked, username, password, display_name: displayName, favorite_color: favoriteColor })
     });
     loadAdminUsers();
 }
@@ -534,77 +652,6 @@ async function deleteUser(userId) {
     if (confirm("Are you sure you want to permanently delete this user account?")) {
         await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
         loadAdminUsers();
+        populatePopupTargets();
     }
-}
-
-async function loadAdminSubmissions() {
-    const panel = document.getElementById("admin-queue-list");
-    try {
-        const res = await fetch("/api/submissions");
-        const data = await res.json();
-        panel.innerHTML = "";
-
-        const pending = data.filter(sub => sub.status === "pending");
-
-        if (pending.length === 0) {
-            panel.innerHTML = "<p class='meta'>No staff video submissions pending review.</p>";
-            return;
-        }
-
-        pending.forEach(sub => {
-            const div = document.createElement("div");
-            div.className = "card";
-            div.style.background = "#0f172a";
-            div.innerHTML = `
-                <p><strong>Uploader:</strong> ${sub.submitted_by}</p>
-                <p><strong>Proposed Title:</strong> ${sub.title}</p>
-                <p><a href="${sub.drive_url}" target="_blank" style="color: var(--accent);">📁 View Drive Video</a></p>
-                
-                <hr style="border-color: var(--border);">
-                
-                <form onsubmit="publishSubmission(event, ${sub.id}, '${sub.drive_url}')" style="display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" placeholder="Official Video Title" id="pub-title-${sub.id}" value="${sub.title}" required style="padding: 6px; background: #1e293b; border: 1px solid var(--border); color: white;">
-                    <input type="text" placeholder="Youtube Video URL" id="pub-yt-url-${sub.id}" required style="padding: 6px; background: #1e293b; border: 1px solid var(--border); color: white;">
-                    <label><input type="checkbox" id="pub-vip-${sub.id}"> VIP Only Video</label>
-                    <div style="display: flex; gap: 10px; margin-top: 5px;">
-                        <button type="submit" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Publish to Feed</button>
-                        <button type="button" onclick="rejectSubmission(${sub.id})" style="background: var(--accent-red); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Reject</button>
-                    </div>
-                </form>
-            `;
-            panel.appendChild(div);
-        });
-    } catch (e) {
-        panel.innerHTML = "Error rendering staff upload queue.";
-    }
-}
-
-async function publishSubmission(event, subId, driveUrl) {
-    event.preventDefault();
-    const title = document.getElementById(`pub-title-${subId}`).value;
-    const ytUrl = document.getElementById(`pub-yt-url-${subId}`).value;
-    const isVip = document.getElementById(`pub-vip-${subId}`).checked;
-
-    const res = await fetch("/api/admin/publish-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, youtubeUrl: ytUrl, isVip, submissionId: subId })
-    });
-
-    if (res.ok) {
-        alert("Video successfully translated and published to feed!");
-        loadAdminSubmissions();
-        fetchVideos();
-    }
-}
-
-async function rejectSubmission(subId) {
-    if (confirm("Reject this submission draft?")) {
-        await fetch(`/api/admin/submissions/reject/${subId}`, { method: "POST" });
-        loadAdminSubmissions();
-    }
-}
-
-function closeBanner() {
-    document.getElementById("alert-banner").style.display = "none";
 }
