@@ -14,7 +14,7 @@ app.secret_key = os.environ.get("SESSION_SECRET", "super_secret_jude_key_123!")
 # to a public GitHub repo with the real password in it.
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres:PASTE_YOUR_PASSWORD_HERE@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
+    "postgresql://postgres:tJ2*MTXY7vtHtDk@db.bqzoonqmqicnszdodefn.supabase.co:6543/postgres"
 )
 
 def get_db_connection():
