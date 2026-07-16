@@ -3,21 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Stream</title>
+    <title>Canada Trip Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<!-- The body will get class 'theme-vip', 'theme-staff', 'theme-president', etc. injected dynamically -->
+<body id="app-body" class="theme-guest">
+
+    <!-- SITE WIDE DYNAMIC ALERT BANNER -->
+    <div id="alert-banner" class="banner" style="display: none;">
+        <span id="banner-content">Welcome to the Rockies!</span>
+        <button onclick="closeBanner()" class="banner-close">&times;</button>
+    </div>
+
     <header>
-        <h1>JUDE'S STREAM FEED</h1>
-        <p>A fast, lightweight portal built with Python & HTML</p>
+        <div class="header-container">
+            <div class="logo">
+                <h1>🏔️ CANADA TRIP 2026</h1>
+                <p>Private Family Media Portal</p>
+            </div>
+            <div class="auth-box">
+                <span id="user-greeting">Welcome, Guest!</span>
+                <a id="auth-btn" href="/login" class="nav-btn">Sign In</a>
+            </div>
+        </div>
     </header>
 
-    <main>
-        <div id="video-grid" class="video-grid">
-            <p class="loading">Fetching stream files from Supabase...</p>
-        </div>
+    <!-- MAIN INTERACTIVE NAVIGATION TABS -->
+    <nav class="tab-navigation">
+        <button class="tab-btn active" onclick="switchTab('videos-tab')">🎥 Stream Feed</button>
+        <button id="vip-tab-btn" class="tab-btn" onclick="switchTab('vip-tab')" style="display: none;">🌟 VIP Feed</button>
+        <button class="tab-btn" onclick="switchTab('itinerary-tab')">📅 Itinerary</button>
+        <button id="chat-tab-btn" class="tab-btn" onclick="switchTab('chat-tab')" style="display: none;">💬 Messenger</button>
+        <button id="admin-tab-btn" class="tab-btn" onclick="switchTab('admin-tab')" style="display: none;">🛠️ Admin Console</button>
+    </nav>
+
+    <!-- SEARCH BAR -->
+    <div class="search-container">
+        <input type="text" id="video-search" placeholder="🔍 Search through trip videos..." onkeyup="filterVideos()">
+    </div>
+
+    <!-- MAIN PORTAL WRAPPER -->
+    <main class="main-wrapper">
+
+        <!-- TAB 1: GENERAL VIDEOS -->
+        <section id="videos-tab" class="tab-content active">
+            <h2 class="section-title">General Stream Feed</h2>
+            <div id="general-video-grid" class="video-grid">
+                <p class="status-msg">Loading public video playlist...</p>
+            </div>
+        </section>
+
+        <!-- TAB 2: VIP BONUS VIDEOS -->
+        <section id="vip-tab" class="tab-content">
+            <h2 class="section-title">🌟 VIP Exclusive Feed</h2>
+            <div id="vip-video-grid" class="video-grid">
+                <p class="status-msg">Loading VIP playlist...</p>
+            </div>
+        </section>
+
+        <!-- TAB 3: ITINERARY VIEW -->
+        <section id="itinerary-tab" class="tab-content">
+            <h2 class="section-title">📅 Trip Itinerary PDF</h2>
+            <div class="pdf-container">
+                <iframe id="itinerary-frame" src="about:blank" width="100%" height="600px"></iframe>
+            </div>
+        </section>
+
+        <!-- TAB 4: MESSENGER & WORKER SUBMISSIONS (Staff/Pres/Admin Only) -->
+        <section id="chat-tab" class="tab-content">
+            <div class="portal-grid">
+                <!-- Google Drive upload queue (Staff upload, Admin reviews) -->
+                <div class="card upload-card" id="staff-drive-section">
+                    <h3>📁 Submit Google Drive Video</h3>
+                    <p class="note">Upload videos to Drive to protect server performance. Admin reviews all drafts!</p>
+                    <form id="drive-upload-form">
+                        <input type="text" id="drive-video-title" placeholder="Descriptive Video Title" required>
+                        <input type="url" id="drive-video-url" placeholder="Google Drive Shareable Link" required>
+                        <button type="submit">Submit to Admin Queue</button>
+                    </form>
+                    
+                    <h4 style="margin-top: 20px;">Your Submissions:</h4>
+                    <div id="my-submissions-list" class="sub-list">No drafts submitted yet.</div>
+                </div>
+
+                <!-- Live Chat Engine -->
+                <div class="card chat-card">
+                    <h3>💬 Live Chat Channels</h3>
+                    <div class="chat-controls">
+                        <label for="chat-channel">Select Channel:</label>
+                        <select id="chat-channel" onchange="loadChats()">
+                            <option value="global_staff">Global Staff Chat</option>
+                            <option value="admin">Direct Message to Admin</option>
+                        </select>
+                    </div>
+                    <div id="chat-messages" class="chat-display">No messages yet.</div>
+                    <form id="chat-send-form" class="chat-form">
+                        <input type="text" id="chat-input" placeholder="Write a secure message..." required>
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: ADMIN MASTER CONSOLE -->
+        <section id="admin-tab" class="tab-content">
+            <h2 class="section-title">⚙️ Master Controller Panel</h2>
+            <div class="admin-grid">
+                
+                <!-- System Overrides (Banners, Maintenance, Itinerary) -->
+                <div class="card">
+                    <h3>💡 Global Overrides</h3>
+                    <form id="admin-settings-form">
+                        <div class="form-group">
+                            <label><input type="checkbox" id="m-toggle"> ⚠️ Activate Maintenance Mode</label>
+                            <input type="text" id="m-msg" placeholder="Maintenance message overlay...">
+                            <input type="text" id="m-timer" placeholder="Timer description (e.g. '15 minutes')">
+                        </div>
+                        <hr>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="b-toggle"> 📢 Active Site Alert Banner</label>
+                            <input type="text" id="b-text" placeholder="Banner announcement text...">
+                            <label for="b-color">Banner Theme:</label>
+                            <select id="b-color">
+                                <option value="#4f46e5">Blue</option>
+                                <option value="#ef4444">Alert Red</option>
+                                <option value="#f59e0b">Amber Warning</option>
+                                <option value="#10b981">Emerald Green</option>
+                            </select>
+                        </div>
+                        <hr>
+                        <div class="form-group">
+                            <label>📅 Update Daily Itinerary PDF URL</label>
+                            <input type="url" id="itinerary-url-input" placeholder="Google Drive/Dropbox PDF direct link">
+                        </div>
+                        <button type="submit" class="admin-btn">Save Overrides</button>
+                    </form>
+                </div>
+
+                <!-- Custom Popup Push Alerts -->
+                <div class="card">
+                    <h3>📢 Send Target Popups</h3>
+                    <form id="admin-popup-form">
+                        <label for="popup-target">Target Destination:</label>
+                        <select id="popup-target">
+                            <option value="all_staff">All Staff (incl. President)</option>
+                            <option value="president">President Only</option>
+                        </select>
+                        <textarea id="popup-text" placeholder="Write custom alert message..." required></textarea>
+                        <button type="submit" class="admin-btn">Push Alert</button>
+                    </form>
+                </div>
+
+                <!-- Manage/Publish Staff Upload Submissions -->
+                <div class="card">
+                    <h3>📥 Staff Submission Approvals</h3>
+                    <div id="admin-queue-list">Loading queue...</div>
+                </div>
+
+                <!-- User Account Management (Full Password & Role Lookup/Edits) -->
+                <div class="card user-mgmt-card">
+                    <h3>👥 Manage User Accounts</h3>
+                    <form id="admin-create-user-form">
+                        <h4>Create Account</h4>
+                        <div class="user-inputs">
+                            <input type="text" id="new-user-name" placeholder="Username" required>
+                            <input type="text" id="new-user-pass" placeholder="Password" required>
+                            <select id="new-user-role">
+                                <option value="vip">VIP Member</option>
+                                <option value="staff">General Staff</option>
+                                <option value="president">President</option>
+                            </select>
+                        </div>
+                        <button type="submit">Create User</button>
+                    </form>
+
+                    <h4>Active Accounts</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Password (Click to See)</th>
+                                    <th>Role</th>
+                                    <th>Locked</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-user-table-body">
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
     </main>
 
+    <!-- FORCED 10-SECOND ITINERARY LOCK SCREEN MODAL -->
+    <div id="itinerary-lock-modal" class="lock-overlay" style="display: none;">
+        <div class="lock-box">
+            <h2>🚨 ITINERARY MODIFIED! 🚨</h2>
+            <p>A change was recently made to our Canadian Rockies travel schedule. Please review today's active PDF plans carefully before browsing other features.</p>
+            <div id="lock-countdown" class="countdown-timer">10 seconds remaining</div>
+            <button id="lock-dismiss-btn" disabled onclick="dismissItineraryLock()">Locking App View...</button>
+        </div>
+    </div>
+
+    <!-- TARGET CUSTOM POPUPS (Dynamic popup reader) -->
+    <div id="custom-alert-modal" class="popup-modal" style="display: none;">
+        <div class="popup-box">
+            <h3>📢 Message from Admin</h3>
+            <p id="popup-modal-content"></p>
+            <button onclick="dismissCustomPopup()">Acknowledge</button>
+        </div>
+    </div>
+
+    <!-- Global configuration script to load Flask parameters cleanly into JS -->
+    <script>
+        const userRole = "{{ session.get('role', 'guest') }}";
+        const userName = "{{ session.get('username', '') }}";
+    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
