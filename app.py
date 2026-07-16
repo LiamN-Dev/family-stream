@@ -11,7 +11,7 @@ app.secret_key = os.environ.get("SESSION_SECRET", "super_secret_rockies_key_2026
 # --- DATABASE CONFIG (UPDATE WITH YOUR SESSION POOLER URI) ---
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://postgres.bqzoonqmqicnszdodefn:YOUR_ACTUAL_PASSWORD_HERE@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+    "postgresql://postgres.bqzoonqmqicnszdodefn:tJ2*MTXY7vtHtDk@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
 )
 
 def get_db_connection():
