@@ -421,7 +421,7 @@ h1, .brand-mark {
 }
 @media (max-width: 820px) { .portal-grid { grid-template-columns: 1fr; } }
 
-.upload-card .note {
+.note {
     color: var(--ink-dim);
     font-size: 13px;
     margin-top: -6px;
@@ -531,6 +531,8 @@ form select,
 .admin-grid textarea,
 .user-inputs input,
 .user-inputs select,
+.field-row input[type="text"],
+.field-row select,
 #itinerary-url-input {
     padding: 10px 12px;
     background: var(--paper);
@@ -566,7 +568,99 @@ form select,
 }
 @media (max-width: 620px) { .user-inputs { grid-template-columns: 1fr; } }
 
-/* --- ACCOUNTS TABLE --- */
+.tab-btn.nav-locked {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.4);
+}
+
+#video-search:disabled {
+    opacity: 0.5;
+}
+
+/* Non-blocking itinerary review notice â€” sits above the PDF, never covers it */
+.lock-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    color: var(--ink);
+    padding: 12px 18px;
+    border-radius: var(--r-md);
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+.lock-bar span {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--gold);
+}
+
+/* Standalone textareas outside the admin grid (e.g. VIP video request form) */
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: var(--r-sm);
+    outline: none;
+    font-family: var(--font-body);
+    font-size: 13px;
+    min-height: 80px;
+    resize: vertical;
+}
+textarea:focus { border-color: var(--accent-line); }
+
+/* Small inline action buttons (video request queue, delete user) */
+.mini-btn {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.mini-btn.danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Favorite-color swatch in the accounts table */
+.color-dot {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--line-strong);
+}
+
+/* Cleaner, labeled account-creation layout */
+.create-user-form .field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+.create-user-form .field-row label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.create-user-form input[type="color"] {
+    width: 60px;
+    height: 38px;
+    padding: 4px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+}
 .table-container { overflow-x: auto; margin-top: 12px; }
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -598,61 +692,7 @@ tr.locked-user { background: var(--danger-soft); }
     border: 1px solid var(--line);
 }
 
-/* --- FORCED ITINERARY LOCK OVERLAY --- */
-.lock-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(4, 10, 7, 0.92);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.lock-box {
-    background: var(--paper-card);
-    border: 1px solid var(--danger);
-    padding: 40px;
-    border-radius: var(--r-lg);
-    text-align: center;
-    max-width: 460px;
-    box-shadow: 0 0 40px rgba(226, 73, 90, 0.25);
-}
-
-.lock-box h2 {
-    color: var(--danger);
-    margin-top: 0;
-    font-family: var(--font-display);
-    font-size: 24px;
-}
-.lock-box p { color: var(--ink-dim); font-size: 14px; line-height: 1.5; }
-
-.countdown-timer {
-    font-family: var(--font-mono);
-    font-size: 26px;
-    font-weight: 600;
-    margin: 22px 0;
-    color: var(--gold);
-}
-
-.lock-box button {
-    background: var(--accent);
-    color: var(--accent-ink);
-    border: none;
-    padding: 12px 28px;
-    border-radius: var(--r-sm);
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-}
-.lock-box button:disabled {
-    background: var(--paper-raised);
-    color: var(--ink-faint);
-    cursor: not-allowed;
-}
-
-/* --- TARGETED POPUP MODAL --- */
+/* --- POPUP MODALS (targeted alerts + site-wide banner announcement) --- */
 .popup-modal {
     position: fixed;
     inset: 0;
