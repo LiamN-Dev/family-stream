@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rocky Mountain Gateway | Portal Login</title>
+    <title>Gateway Portal | Fairmont Rockies Private Link</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: radial-gradient(circle at top right, #092c20, #0b1a24 60%, #03080e);
+            background: radial-gradient(circle at top right, #0a251c, #07131b 60%, #020609);
             background-attachment: fixed;
             color: #f3f4f6;
             min-height: 100vh;
@@ -21,7 +21,6 @@
             font-family: 'Playfair Display', serif;
         }
 
-        /* --- Liquid Glass styling --- */
         .liquid-glass {
             background: rgba(255, 255, 255, 0.04);
             backdrop-filter: blur(25px) saturate(140%);
@@ -47,12 +46,12 @@
 </head>
 <body class="flex items-center justify-center p-6 relative overflow-hidden">
 
-    <!-- Ambient glowing backdrops -->
-    <div class="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-emerald-900/10 rounded-full filter blur-[100px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-sky-900/10 rounded-full filter blur-[120px] pointer-events-none"></div>
+    <!-- Ambient background colors -->
+    <div class="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-emerald-950/20 rounded-full filter blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-sky-950/20 rounded-full filter blur-[120px] pointer-events-none"></div>
 
     <div class="max-w-md w-full relative z-10">
-        <!-- Logo Header -->
+        <!-- Brand logo -->
         <div class="text-center mb-8">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-emerald-800 flex items-center justify-center border border-white/10 shadow-xl mx-auto mb-4">
                 <i class="fa-solid fa-mountain-sun text-white text-2xl"></i>
@@ -61,12 +60,12 @@
             <span class="block text-xs uppercase tracking-widest text-slate-400 font-semibold mt-1">Rockies Summit 2026</span>
         </div>
 
-        <!-- Glass Login Panel -->
+        <!-- Glass login panel -->
         <div class="liquid-glass rounded-3xl p-8 md:p-10">
             <h2 class="text-2xl text-white font-semibold text-center mb-6 brand-font">Verify Credentials</h2>
             
             <form id="loginForm" class="space-y-5">
-                <!-- Message alert field -->
+                <!-- Errors message field -->
                 <div id="errorAlert" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center font-semibold"></div>
 
                 <div>
@@ -120,16 +119,15 @@
                 const data = await res.json();
 
                 if (res.ok && data.success) {
-                    // Set local security contexts to sessionStorage to sync front & back
                     sessionStorage.setItem("sessionRole", data.role);
                     sessionStorage.setItem("sessionUsername", username);
                     window.location.href = "/";
                 } else {
-                    errorAlert.innerText = data.error || "Verification mismatch occurred.";
+                    errorAlert.innerText = data.error || "Credentials verification mismatch.";
                     errorAlert.classList.remove("hidden");
                 }
             } catch (err) {
-                errorAlert.innerText = "Fatal network execution verification error.";
+                errorAlert.innerText = "Fatal connection check verification error.";
                 errorAlert.classList.remove("hidden");
             }
         };
