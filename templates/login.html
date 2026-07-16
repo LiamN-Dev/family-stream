@@ -6,13 +6,42 @@
     <title>Stream Authorization</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="login-body">
     <main class="login-container">
-        <h2>Enter Access Key</h2>
-        <form id="login-form">
-            <input type="password" id="access-key" placeholder="••••••••" required>
-            <button type="submit">Authenticate</button>
-        </form>
+        <div class="login-box card">
+            <h2>🏔️ Canada Portal Login</h2>
+            <p>Access your family trip profile</p>
+            <form id="login-form">
+                <input type="text" id="access-username" placeholder="Enter Username" required autocomplete="username">
+                <input type="password" id="access-password" placeholder="Enter Password" required autocomplete="current-password">
+                <button type="submit">Authenticate</button>
+                <p id="error-message" class="error-text" style="display:none;"></p>
+            </form>
+            <a href="/" class="guest-link">← Return as Guest</a>
+        </div>
     </main>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('access-username').value;
+            const pass = document.getElementById('access-password').value;
+            const errorMsg = document.getElementById('error-message');
+            
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            
+            const data = await res.json();
+            if (res.ok) {
+                window.location.href = '/';
+            } else {
+                errorMsg.innerText = data.error || 'Authentication Failed';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
