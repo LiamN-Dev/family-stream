@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-body">
+<div class="site-shell">
     <main class="login-container">
         <div class="login-box card">
+            <span class="brand-eyebrow">Trip Log · Alberta &amp; B.C.</span>
             <h2>🏔️ Canada Portal Login</h2>
             <p>Access your family trip profile</p>
             <form id="login-form">
@@ -20,6 +22,7 @@
             <a href="/" class="guest-link">← Return as Guest</a>
         </div>
     </main>
+</div>
 
     <script>
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -27,13 +30,13 @@
             const user = document.getElementById('access-username').value;
             const pass = document.getElementById('access-password').value;
             const errorMsg = document.getElementById('error-message');
-            
+
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: user, password: pass })
             });
-            
+
             const data = await res.json();
             if (res.ok) {
                 window.location.href = '/';
