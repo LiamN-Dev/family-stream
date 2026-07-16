@@ -6,66 +6,117 @@
     <title>Canadian Rockies Family Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .staff-theme { background-color: #111827; color: #f3f4f6; }
-        .vip-theme { background-color: #1e1b4b; color: #e0e7ff; border: 2px solid #818cf8; }
-        .hidden-tab { display: none !important; }
+        /* Smooth transitions & subtle glow animations */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 0 15px rgba(99, 102, 241, 0.15);
+        }
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .glass-input:focus {
+            border-color: rgba(129, 140, 248, 0.5);
+            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+        }
+        /* Custom scrollbar for beautiful glass boxes */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans transition-all duration-300">
+<body class="bg-gradient-to-br from-slate-950 via-indigo-950 to-emerald-950 text-slate-100 font-sans min-h-screen transition-all duration-300">
+
+    <!-- GLOWING BACKGROUND ELEMENTS -->
+    <div class="fixed -top-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed top-1/2 right-10 w-80 h-80 bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
 
     <!-- SITE-WIDE BANNER (MANAGED BY ADMIN) -->
-    <div id="admin-banner" class="hidden text-white py-3 px-4 text-center font-bold relative transition-all">
+    <div id="admin-banner" class="hidden text-white py-3 px-4 text-center font-bold relative glass-panel border-b border-white/10 z-50">
         <span id="banner-text">Site Announcement</span>
-        <button onclick="closeBanner()" class="absolute right-4 top-1/2 -translate-y-1/2 font-bold">✕</button>
+        <button onclick="closeBanner()" class="absolute right-4 top-1/2 -translate-y-1/2 font-bold hover:text-red-400 transition">✕</button>
     </div>
 
     <!-- SITE-WIDE MAINTENANCE OVERLAY -->
-    <div id="maintenance-overlay" class="hidden fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center text-white text-center p-6">
-        <h1 class="text-4xl font-extrabold text-red-500 mb-4">Under Maintenance</h1>
-        <p id="maintenance-msg" class="text-lg max-w-md mb-6">The Admin is fine-tuning our travel portal. We will be right back!</p>
-        <div id="maintenance-timer" class="text-2xl font-mono bg-slate-800 px-4 py-2 rounded hidden"></div>
+    <div id="maintenance-overlay" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-2xl z-50 flex flex-col items-center justify-center text-center p-6">
+        <div class="glass-panel p-8 rounded-3xl max-w-md border border-red-500/20 shadow-2xl shadow-red-500/5">
+            <h1 class="text-4xl font-black text-red-400 mb-4 tracking-tight">Under Maintenance</h1>
+            <p id="maintenance-msg" class="text-slate-300 max-w-sm mb-6 leading-relaxed">The Admin is fine-tuning our travel portal. We will be right back!</p>
+            <div id="maintenance-timer" class="text-2xl font-mono bg-black/40 text-red-300 px-4 py-2 rounded-xl inline-block border border-red-500/10 hidden"></div>
+        </div>
     </div>
 
     <!-- ITINERARY LOCKOUT SCREEN -->
-    <div id="itinerary-lock-screen" class="hidden fixed inset-0 bg-black/95 z-40 flex flex-col items-center justify-center text-white text-center p-6">
-        <h2 class="text-3xl font-extrabold text-amber-500 mb-2">🚨 Important Itinerary Update! 🚨</h2>
-        <p class="text-lg max-w-md mb-6">Your travel schedule has been updated. You must review the daily plan before proceeding back to the main portal.</p>
-        <div class="w-full max-w-4xl h-96 bg-white rounded shadow-lg overflow-hidden mb-4">
-            <iframe id="lockout-pdf-viewer" class="w-full h-full" src=""></iframe>
+    <div id="itinerary-lock-screen" class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-3xl z-40 flex flex-col items-center justify-center text-center p-6">
+        <h2 class="text-3xl font-black text-amber-400 mb-2 tracking-tight">🚨 New Itinerary Update! 🚨</h2>
+        <p class="text-slate-300 max-w-md mb-6 text-sm">Our schedule has been fine-tuned. Please review the updated plan below before continuing to the hub.</p>
+        <div class="w-full max-w-4xl h-[55vh] rounded-2xl overflow-hidden mb-6 border border-white/10 shadow-2xl shadow-amber-500/5">
+            <iframe id="lockout-pdf-viewer" class="w-full h-full bg-slate-900" src=""></iframe>
         </div>
-        <p id="lockout-countdown" class="text-xl font-bold text-amber-400 animate-pulse">Reviewing schedule: 10s remaining</p>
+        <p id="lockout-countdown" class="text-lg font-bold text-amber-300 bg-amber-500/10 px-4 py-2 rounded-full border border-amber-500/20 animate-pulse">
+            Reviewing schedule: 10s remaining
+        </p>
     </div>
 
     <!-- NAVIGATION HEADER -->
-    <header class="bg-white shadow-md border-b border-slate-200 sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-black tracking-tight text-blue-600 flex items-center gap-2">
-                🍁 Rockies Family Hub <span id="user-role-badge" class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full uppercase tracking-wider font-semibold">General Guest</span>
+    <header class="glass-panel border-b border-white/5 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400 flex items-center gap-3">
+                🍁 Rockies Family Hub <span id="user-role-badge" class="text-[10px] bg-white/5 text-slate-300 border border-white/10 px-2.5 py-1 rounded-full uppercase tracking-widest font-bold">General Guest</span>
             </h1>
             
             <div class="flex items-center gap-4">
                 <nav class="flex gap-2">
-                    <button onclick="switchTab('videos')" class="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Videos</button>
-                    <button onclick="switchTab('itinerary')" class="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Itinerary</button>
-                    <button id="nav-staff-chat" onclick="switchTab('chat')" class="hidden px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 transition">Staff Portal</button>
-                    <button id="nav-admin" onclick="switchTab('admin-panel')" class="hidden px-4 py-2 rounded-lg font-medium text-white bg-red-500 hover:bg-red-600 transition">Admin Tools</button>
+                    <button onclick="switchTab('videos')" class="px-4 py-2 rounded-xl font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition">Videos</button>
+                    <button onclick="switchTab('itinerary')" class="px-4 py-2 rounded-xl font-semibold text-slate-300 hover:text-white hover:bg-white/5 transition">Itinerary</button>
+                    <button id="nav-staff-chat" onclick="switchTab('chat')" class="hidden px-4 py-2 rounded-xl font-semibold text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 transition">Staff Portal</button>
+                    <button id="nav-admin" onclick="switchTab('admin-panel')" class="hidden px-4 py-2 rounded-xl font-bold text-red-300 hover:text-red-200 hover:bg-red-500/10 transition">Admin Panel</button>
                 </nav>
-                <button id="auth-btn" onclick="openLoginModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition shadow-sm">Sign In</button>
+                <button id="auth-btn" onclick="openLoginModal()" class="bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-95">Sign In</button>
             </div>
         </div>
     </header>
 
     <!-- CONTENT WRAPPER -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
+    <main class="max-w-7xl mx-auto px-6 py-8">
 
         <!-- TAB: VIDEOS -->
         <section id="tab-videos" class="tab-content">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h2 class="text-3xl font-extrabold tracking-tight">Trip Media</h2>
-                    <p class="text-slate-500">Search videos uploaded during our adventure.</p>
+                    <h2 class="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Trip Media</h2>
+                    <p class="text-slate-400 text-sm mt-1">Search videos shared by the family during our adventure.</p>
                 </div>
-                <input type="text" id="search-input" onkeyup="filterVideos()" placeholder="Search videos..." class="px-4 py-2.5 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 max-w-sm w-full outline-none">
+                <input type="text" id="search-input" onkeyup="filterVideos()" placeholder="Search videos by title..." class="glass-input px-4 py-3 rounded-xl max-w-sm w-full outline-none">
             </div>
 
             <!-- Videos Grid -->
@@ -76,35 +127,35 @@
 
         <!-- TAB: ITINERARY -->
         <section id="tab-itinerary" class="tab-content hidden-tab">
-            <h2 class="text-3xl font-extrabold tracking-tight mb-4">Trip Itinerary</h2>
-            <div class="bg-white rounded-2xl shadow-md border p-6 min-h-[600px] flex flex-col">
-                <iframe id="main-pdf-viewer" class="w-full flex-grow rounded border" src="" style="min-height: 500px;"></iframe>
+            <h2 class="text-3xl font-black tracking-tight mb-4">Trip Itinerary</h2>
+            <div class="glass-panel rounded-3xl p-6 min-h-[60vh] flex flex-col">
+                <iframe id="main-pdf-viewer" class="w-full flex-grow rounded-2xl border border-white/5 bg-slate-950" src="" style="min-height: 550px;"></iframe>
             </div>
         </section>
 
-        <!-- TAB: CHAT PORTAL (STAFF / PRESIDENT) -->
+        <!-- TAB: CHAT PORTAL -->
         <section id="tab-chat" class="tab-content hidden-tab">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 bg-white rounded-2xl border shadow-md p-6 flex flex-col h-[550px]">
-                    <h3 class="text-xl font-bold mb-4 flex justify-between">
+                <div class="lg:col-span-2 glass-panel rounded-3xl p-6 flex flex-col h-[550px]">
+                    <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b border-white/5 pb-3">
                         <span>Staff & President Comms</span>
-                        <span class="text-xs text-slate-400">Global Channel</span>
+                        <span class="text-xs bg-indigo-500/10 text-indigo-300 px-2.5 py-1 rounded-full border border-indigo-500/20">Global Channel</span>
                     </h3>
-                    <div id="chat-box" class="flex-grow overflow-y-auto border rounded-xl p-4 space-y-4 bg-slate-50 mb-4">
+                    <div id="chat-box" class="flex-grow overflow-y-auto border border-white/5 rounded-2xl p-4 space-y-4 bg-black/20 mb-4">
                         <!-- Messages dynamically rendered -->
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="chat-input" placeholder="Type a message..." class="flex-grow px-4 py-2 border rounded-lg focus:ring-2 outline-none">
-                        <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition">Send</button>
+                        <input type="text" id="chat-input" placeholder="Type a secure message..." class="flex-grow glass-input px-4 py-2.5 rounded-xl outline-none">
+                        <button onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition">Send</button>
                     </div>
                 </div>
-                <div class="bg-white rounded-2xl border shadow-md p-6">
-                    <h3 class="text-lg font-bold mb-4">Upload Media Request</h3>
-                    <p class="text-sm text-slate-500 mb-4">Submit videos directly to Google Drive/DropBox folders, then log the link here for the Admin to review.</p>
+                <div class="glass-panel rounded-3xl p-6">
+                    <h3 class="text-lg font-bold mb-2">Upload Media Link</h3>
+                    <p class="text-xs text-slate-400 mb-4 leading-relaxed">Save your media files directly to Google Drive or Dropbox first, then paste the shared link below for approval.</p>
                     <div class="space-y-3">
-                        <input type="text" id="upload-title" placeholder="Video Title" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        <input type="text" id="upload-url" placeholder="Drive URL Link" class="w-full px-3 py-2 border rounded-lg outline-none">
-                        <button onclick="submitStaffVideo()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg transition">Submit to Admin</button>
+                        <input type="text" id="upload-title" placeholder="Video Title" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none">
+                        <input type="text" id="upload-url" placeholder="Shared Drive Link URL" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none">
+                        <button onclick="submitStaffVideo()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-600/10">Submit to Admin</button>
                     </div>
                 </div>
             </div>
@@ -112,33 +163,33 @@
 
         <!-- TAB: ADMIN CONTROL PANEL -->
         <section id="tab-admin-panel" class="tab-content hidden-tab space-y-8">
-            <h2 class="text-3xl font-extrabold tracking-tight">System Controls</h2>
+            <h2 class="text-3xl font-black tracking-tight">System Controls</h2>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- User Account Admin -->
-                <div class="bg-white rounded-2xl border p-6 shadow-md">
-                    <h3 class="text-xl font-bold mb-4">Family Account Manager</h3>
+                <div class="glass-panel rounded-3xl p-6">
+                    <h3 class="text-lg font-bold mb-4 border-b border-white/5 pb-3">Family Account Manager</h3>
                     <div class="space-y-4 mb-6">
                         <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="admin-user-name" placeholder="Username" class="px-3 py-2 border rounded">
-                            <input type="text" id="admin-user-pass" placeholder="Password" class="px-3 py-2 border rounded">
-                            <select id="admin-user-role" class="px-3 py-2 border rounded">
+                            <input type="text" id="admin-user-name" placeholder="Username" class="glass-input px-3 py-2.5 rounded-lg outline-none text-sm">
+                            <input type="text" id="admin-user-pass" placeholder="Password" class="glass-input px-3 py-2.5 rounded-lg outline-none text-sm">
+                            <select id="admin-user-role" class="glass-input px-3 py-2.5 rounded-lg outline-none text-sm">
                                 <option value="vip">VIP</option>
                                 <option value="staff">Staff</option>
                                 <option value="president">President</option>
                                 <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <button onclick="createUser()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium">Create User Account</button>
+                        <button onclick="createUser()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold transition">Create Account</button>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm border-collapse">
                             <thead>
-                                <tr class="bg-slate-100 border-b">
-                                    <th class="p-2">User</th>
-                                    <th class="p-2">Password</th>
-                                    <th class="p-2">Role</th>
-                                    <th class="p-2">Actions</th>
+                                <tr class="border-b border-white/10 text-slate-400">
+                                    <th class="p-3">User</th>
+                                    <th class="p-3">Password</th>
+                                    <th class="p-3">Role</th>
+                                    <th class="p-3">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-users-list">
@@ -149,40 +200,40 @@
                 </div>
 
                 <!-- Page / Banner / Maintenance Controls -->
-                <div class="bg-white rounded-2xl border p-6 shadow-md space-y-6">
+                <div class="glass-panel rounded-3xl p-6 space-y-6">
                     <div>
-                        <h3 class="text-xl font-bold mb-3">Live Itinerary Controller</h3>
+                        <h3 class="text-lg font-bold mb-3">Live Itinerary Controller</h3>
                         <div class="flex gap-2">
-                            <input type="text" id="admin-itinerary-url" placeholder="New PDF URL" class="flex-grow px-3 py-2 border rounded outline-none">
-                            <button onclick="updateItinerary()" class="bg-indigo-600 text-white px-4 py-2 rounded">Push Update</button>
+                            <input type="text" id="admin-itinerary-url" placeholder="Paste New PDF URL" class="flex-grow glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
+                            <button onclick="updateItinerary()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-indigo-750 transition text-sm">Push Update</button>
                         </div>
                     </div>
                     
-                    <hr>
+                    <hr class="border-white/5">
 
                     <div>
-                        <h3 class="text-xl font-bold mb-3">Site-Wide Alert Banner</h3>
+                        <h3 class="text-lg font-bold mb-3">Site-Wide Alert Banner</h3>
                         <div class="space-y-3">
-                            <input type="text" id="admin-banner-text" placeholder="Banner Text Alert" class="w-full px-3 py-2 border rounded outline-none">
-                            <div class="flex gap-4 items-center">
-                                <label class="text-sm font-medium">Color Scheme:</label>
-                                <input type="color" id="admin-banner-color" value="#1e3a8a" class="w-12 h-8 rounded border">
-                                <button onclick="saveBannerSettings(true)" class="bg-emerald-600 text-white px-4 py-2 rounded text-sm">Activate</button>
-                                <button onclick="saveBannerSettings(false)" class="bg-rose-600 text-white px-4 py-2 rounded text-sm">Disable</button>
+                            <input type="text" id="admin-banner-text" placeholder="Banner Text Alert" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
+                            <div class="flex gap-3 items-center">
+                                <label class="text-sm font-semibold text-slate-300">Color:</label>
+                                <input type="color" id="admin-banner-color" value="#4f46e5" class="w-12 h-9 rounded-lg border-0 bg-transparent cursor-pointer">
+                                <button onclick="saveBannerSettings(true)" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-semibold text-xs hover:bg-emerald-700 transition">Activate</button>
+                                <button onclick="saveBannerSettings(false)" class="bg-rose-600 text-white px-4 py-2 rounded-xl font-semibold text-xs hover:bg-rose-700 transition">Disable</button>
                             </div>
                         </div>
                     </div>
 
-                    <hr>
+                    <hr class="border-white/5">
 
                     <div>
-                        <h3 class="text-xl font-bold mb-3">System Maintenance Portal</h3>
+                        <h3 class="text-lg font-bold mb-3">System Maintenance Portal</h3>
                         <div class="space-y-3">
-                            <input type="text" id="admin-maint-text" placeholder="Custom message displayed on overlay" class="w-full px-3 py-2 border rounded outline-none">
-                            <input type="text" id="admin-maint-timer" placeholder="Timer description (e.g. 15 minutes)" class="w-full px-3 py-2 border rounded outline-none">
+                            <input type="text" id="admin-maint-text" placeholder="Custom message displayed on overlay" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
+                            <input type="text" id="admin-maint-timer" placeholder="Timer description (e.g. 15 minutes)" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
                             <div class="flex gap-2">
-                                <button onclick="saveMaintenanceSettings(true)" class="bg-red-600 text-white px-4 py-2 rounded text-sm">Turn ON Overlay</button>
-                                <button onclick="saveMaintenanceSettings(false)" class="bg-slate-600 text-white px-4 py-2 rounded text-sm">Turn OFF Overlay</button>
+                                <button onclick="saveMaintenanceSettings(true)" class="bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold text-xs hover:bg-red-700 transition">Turn ON Overlay</button>
+                                <button onclick="saveMaintenanceSettings(false)" class="bg-slate-600 text-white px-4 py-2.5 rounded-xl font-semibold text-xs hover:bg-slate-700 transition">Turn OFF Overlay</button>
                             </div>
                         </div>
                     </div>
@@ -193,20 +244,23 @@
     </main>
 
     <!-- LOGIN MODAL -->
-    <div id="login-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl border max-w-md w-full p-6 relative">
-            <button onclick="closeLoginModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 text-xl">✕</button>
-            <h3 class="text-2xl font-bold mb-4">Portal Login</h3>
+    <div id="login-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-8 rounded-3xl relative border border-white/10 shadow-2xl">
+            <button onclick="closeLoginModal()" class="absolute right-5 top-5 text-slate-400 hover:text-white text-xl font-bold transition">✕</button>
+            <h3 class="text-2xl font-black mb-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Portal Access</h3>
+            <p class="text-xs text-slate-400 mb-6">Enter your family credentials to unlock roles & media.</p>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-600 mb-1">Username</label>
-                    <input type="text" id="login-username" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Username</label>
+                    <input type="text" id="login-username" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="login-password" class="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                    <input type="password" id="login-password" class="w-full glass-input px-3.5 py-2.5 rounded-xl outline-none text-sm">
                 </div>
-                <button onclick="attemptLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition shadow-sm">Submit Credentials</button>
+                <button id="login-submit-btn" onclick="attemptLogin()" class="w-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-500/20 active:scale-95">
+                    Submit Credentials
+                </button>
             </div>
         </div>
     </div>
@@ -219,10 +273,11 @@
 
         // RUN ON INITIAL BOOT
         window.addEventListener('DOMContentLoaded', async () => {
+            console.log("Portal UI Initialized.");
             await refreshSettings();
             await loadVideos();
             await loadItinerary();
-            setInterval(checkRealtimeUpdates, 5000); // Check for live state changes every 5s
+            setInterval(checkRealtimeUpdates, 5000); 
         });
 
         function switchTab(tabId) {
@@ -235,7 +290,6 @@
                 const res = await fetch('/api/settings');
                 globalSettings = await res.json();
                 
-                // Handle Maintenance Banner
                 const maint = globalSettings.maintenance;
                 if (maint && maint.active && currentUser.role !== 'admin') {
                     document.getElementById('maintenance-overlay').classList.remove('hidden');
@@ -249,7 +303,6 @@
                     document.getElementById('maintenance-overlay').classList.add('hidden');
                 }
 
-                // Handle Announcements Banner
                 const banner = globalSettings.banner;
                 const localBannerClosed = localStorage.getItem('bannerClosed') === 'true';
                 if (banner && banner.active && !localBannerClosed) {
@@ -258,7 +311,7 @@
                     document.getElementById('banner-text').innerText = banner.text;
                     el.classList.remove('hidden');
                 }
-            } catch (err) { console.error("Error reading system state settings", err); }
+            } catch (err) { console.error("Error reading system state settings:", err); }
         }
 
         function closeBanner() {
@@ -271,99 +324,134 @@
             await checkItineraryLock();
         }
 
-        // ITINERARY 10-SEC LOCKOUT SYSTEM
         async function loadItinerary() {
-            const res = await fetch('/api/itinerary');
-            const data = await res.json();
-            if (data.pdf_url) {
-                document.getElementById('main-pdf-viewer').src = data.pdf_url;
-                document.getElementById('lockout-pdf-viewer').src = data.pdf_url;
-                currentItineraryTimestamp = data.last_updated;
-            }
+            try {
+                const res = await fetch('/api/itinerary');
+                const data = await res.json();
+                if (data.pdf_url) {
+                    document.getElementById('main-pdf-viewer').src = data.pdf_url;
+                    document.getElementById('lockout-pdf-viewer').src = data.pdf_url;
+                    currentItineraryTimestamp = data.last_updated;
+                }
+            } catch(e) { console.error("Error fetching itinerary data:", e); }
         }
 
         async function checkItineraryLock() {
-            const res = await fetch('/api/itinerary');
-            const data = await res.json();
-            if (!data.pdf_url) return;
+            try {
+                const res = await fetch('/api/itinerary');
+                const data = await res.json();
+                if (!data.pdf_url) return;
 
-            const savedStamp = localStorage.getItem('last_seen_itinerary');
-            if (savedStamp !== data.last_updated) {
-                // Lockout triggers
-                document.getElementById('itinerary-lock-screen').classList.remove('hidden');
-                let count = 10;
-                const interval = setInterval(() => {
-                    count--;
-                    document.getElementById('lockout-countdown').innerText = `Reviewing schedule: ${count}s remaining`;
-                    if (count <= 0) {
-                        clearInterval(interval);
-                        document.getElementById('itinerary-lock-screen').classList.add('hidden');
-                        localStorage.setItem('last_seen_itinerary', data.last_updated);
-                    }
-                }, 1000);
-            }
+                const savedStamp = localStorage.getItem('last_seen_itinerary');
+                if (savedStamp !== data.last_updated) {
+                    document.getElementById('itinerary-lock-screen').classList.remove('hidden');
+                    let count = 10;
+                    const interval = setInterval(() => {
+                        count--;
+                        document.getElementById('lockout-countdown').innerText = `Reviewing schedule: ${count}s remaining`;
+                        if (count <= 0) {
+                            clearInterval(interval);
+                            document.getElementById('itinerary-lock-screen').classList.add('hidden');
+                            localStorage.setItem('last_seen_itinerary', data.last_updated);
+                        }
+                    }, 1000);
+                }
+            } catch(e) { console.error("Error evaluating itinerary lock state:", e); }
         }
 
-        // MEDIA RENDERING & SEARCH
         async function loadVideos() {
-            const res = await fetch('/api/videos');
-            const videos = await res.json();
-            const grid = document.getElementById('video-grid');
-            grid.innerHTML = '';
+            try {
+                const res = await fetch('/api/videos');
+                const videos = await res.json();
+                const grid = document.getElementById('video-grid');
+                grid.innerHTML = '';
 
-            videos.forEach(video => {
-                // Only show VIP videos to logged in accounts (VIP, Staff, President, Admin)
-                if (video.category === 'vip' && currentUser.role === 'guest') return;
+                if (videos.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 text-sm glass-panel rounded-3xl">No media files logged yet.</div>`;
+                    return;
+                }
 
-                const card = document.createElement('div');
-                card.className = "bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition video-card";
-                card.dataset.title = video.title.toLowerCase();
-                
-                card.innerHTML = `
-                    <div class="p-5">
-                        <span class="text-xs font-bold uppercase tracking-wide text-blue-600 bg-blue-50 px-2 py-1 rounded">${video.category}</span>
-                        <h4 class="text-lg font-bold mt-2 text-slate-800">${video.title}</h4>
-                        <p class="text-sm text-slate-400 mt-1">Uploaded by: ${video.uploaded_by}</p>
-                        <a href="${video.url}" target="_blank" class="block mt-4 text-center bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 rounded-xl text-sm transition">Play Video</a>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
+                videos.forEach(video => {
+                    if (video.category === 'vip' && currentUser.role === 'guest') return;
+
+                    const card = document.createElement('div');
+                    card.className = "glass-card rounded-2xl overflow-hidden p-5 flex flex-col justify-between video-card";
+                    card.dataset.title = video.title.toLowerCase();
+                    
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">${video.category}</span>
+                            <h4 class="text-lg font-bold mt-3 text-slate-100 leading-snug">${video.title}</h4>
+                            <p class="text-xs text-slate-400 mt-1.5">Uploaded by: <span class="font-semibold text-slate-300">${video.uploaded_by}</span></p>
+                        </div>
+                        <a href="${video.url}" target="_blank" class="block mt-5 text-center bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-md shadow-indigo-600/10">Play Media</a>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch(e) { console.error("Error downloading media streams:", e); }
         }
 
         function filterVideos() {
             const query = document.getElementById('search-input').value.toLowerCase();
             document.querySelectorAll('.video-card').forEach(card => {
                 const text = card.dataset.title;
-                if (text.includes(query)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
+                card.style.display = text.includes(query) ? 'flex' : 'none';
             });
         }
 
-        // AUTHENTICATION
-        function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); }
-        function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); }
+        // ==========================================
+        // AUTHENTICATION LOGIC & DIAGNOSTICS
+        // ==========================================
+        function openLoginModal() { 
+            console.log("Opening login modal...");
+            document.getElementById('login-modal').classList.remove('hidden'); 
+        }
+        function closeLoginModal() { 
+            console.log("Closing login modal...");
+            document.getElementById('login-modal').classList.add('hidden'); 
+        }
 
         async function attemptLogin() {
-            const u = document.getElementById('login-username').value;
+            const submitBtn = document.getElementById('login-submit-btn');
+            const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value;
+            
+            console.log("Submit clicked. Attempting login for username:", u);
 
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p })
-            });
+            if (!u || !p) {
+                alert("Please fill out both the username and password fields.");
+                return;
+            }
 
-            if (res.ok) {
-                currentUser = await res.json();
-                closeLoginModal();
-                updateUIForUser();
-            } else {
-                const err = await res.json();
-                alert(`Authentication failed: ${err.detail}`);
+            // Visual loading feedback
+            submitBtn.innerText = "Verifying...";
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+
+                console.log("HTTP response received. Status code:", res.status);
+
+                if (res.ok) {
+                    currentUser = await res.json();
+                    console.log("User logged in successfully! Session details:", currentUser);
+                    closeLoginModal();
+                    updateUIForUser();
+                } else {
+                    const err = await res.json();
+                    console.error("Authentication rejected by backend server:", err);
+                    alert(`Login Failed: ${err.detail || 'Incorrect username or password'}`);
+                }
+            } catch (err) {
+                console.error("Network or script error caught on fetch trigger:", err);
+                alert(`Critical Network Error! Could not reach the server.\n\nDetails: ${err.message}\n\nMake sure your Render backend is running and Supabase configurations are hooked up.`);
+            } finally {
+                submitBtn.innerText = "Submit Credentials";
+                submitBtn.disabled = false;
             }
         }
 
@@ -372,8 +460,6 @@
             const badge = document.getElementById('user-role-badge');
             badge.innerText = currentUser.role;
             
-            // Clean dynamic interface setups
-            document.body.className = "bg-slate-50 text-slate-800 font-sans";
             document.getElementById('nav-staff-chat').classList.add('hidden');
             document.getElementById('nav-admin').classList.add('hidden');
 
@@ -386,44 +472,50 @@
                 btn.innerText = `Sign Out (${currentUser.username})`;
                 btn.onclick = logout;
                 document.getElementById('nav-staff-chat').classList.remove('hidden');
-                document.body.classList.add('staff-theme');
                 loadChatMessages();
             } else if (currentUser.role === 'vip') {
                 btn.innerText = `Sign Out (${currentUser.username})`;
                 btn.onclick = logout;
-                document.body.classList.add('vip-theme');
             }
             loadVideos();
         }
 
         function logout() {
+            console.log("User logging out.");
             currentUser = { id: null, username: "Guest", role: "guest" };
-            document.getElementById('auth-btn').innerText = "Sign In";
-            document.getElementById('auth-btn').onclick = openLoginModal;
+            const btn = document.getElementById('auth-btn');
+            btn.innerText = "Sign In";
+            btn.onclick = openLoginModal;
             updateUIForUser();
             switchTab('videos');
         }
 
         // CHAT PORTAL LOGIC (GLOBAL + PRIVATE DECREES)
         async function loadChatMessages() {
-            const res = await fetch(`/api/messages?user_id=${currentUser.id}&role=${currentUser.role}`);
-            const messages = await res.json();
-            const box = document.getElementById('chat-box');
-            box.innerHTML = '';
+            try {
+                const res = await fetch(`/api/messages?user_id=${currentUser.id}&role=${currentUser.role}`);
+                const messages = await res.json();
+                const box = document.getElementById('chat-box');
+                box.innerHTML = '';
 
-            messages.forEach(msg => {
-                const wrapper = document.createElement('div');
-                wrapper.className = msg.is_red_flag ? "p-3 bg-red-100 border border-red-300 text-red-900 rounded-lg shadow-sm" : "p-3 bg-white border text-slate-800 rounded-lg shadow-sm";
-                wrapper.innerHTML = `
-                    <div class="flex justify-between items-center text-xs text-slate-400 mb-1">
-                        <span class="font-bold text-slate-600">${msg.sender_username}</span>
-                        <span>${new Date(msg.created_at).toLocaleTimeString()}</span>
-                    </div>
-                    <p class="text-sm font-medium">${msg.message_text}</p>
-                `;
-                box.appendChild(wrapper);
-            });
-            box.scrollTop = box.scrollHeight;
+                messages.forEach(msg => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = msg.is_red_flag 
+                        ? "p-4 bg-red-500/10 border border-red-500/30 text-red-200 rounded-xl shadow-md" 
+                        : "p-4 bg-white/5 border border-white/5 text-slate-100 rounded-xl shadow-sm";
+                    wrapper.innerHTML = `
+                        <div class="flex justify-between items-center text-xs text-slate-400 mb-1.5">
+                            <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                                ${msg.is_red_flag ? '👑' : '👤'} ${msg.sender_username}
+                            </span>
+                            <span>${new Date(msg.created_at).toLocaleTimeString()}</span>
+                        </div>
+                        <p class="text-sm font-medium leading-relaxed">${msg.message_text}</p>
+                    `;
+                    box.appendChild(wrapper);
+                });
+                box.scrollTop = box.scrollHeight;
+            } catch(e) { console.error("Could not download chat records:", e); }
         }
 
         async function sendChatMessage() {
@@ -431,67 +523,73 @@
             const text = input.value;
             if (!text) return;
 
-            await fetch('/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sender_id: currentUser.id,
-                    sender_username: currentUser.username,
-                    message_text: text,
-                    is_red_flag: currentUser.role === 'president'
-                })
-            });
-            input.value = '';
-            loadChatMessages();
+            try {
+                await fetch('/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender_id: currentUser.id,
+                        sender_username: currentUser.username,
+                        message_text: text,
+                        is_red_flag: currentUser.role === 'president'
+                    })
+                });
+                input.value = '';
+                loadChatMessages();
+            } catch(e) { console.error("Error sending communication transmission:", e); }
         }
 
         // MEDIA SUBMISSIONS (STAFF)
         async function submitStaffVideo() {
             const title = document.getElementById('upload-title').value;
             const url = document.getElementById('upload-url').value;
-            if (!title || !url) return alert("Please fill in both fields!");
+            if (!title || !url) return alert("Please populate both parameters!");
 
-            await fetch('/api/videos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: title,
-                    url: url,
-                    category: 'general',
-                    uploaded_by: currentUser.username,
-                    is_approved: false
-                })
-            });
-            alert("Video successfully submitted to Admin dashboard for editing!");
-            document.getElementById('upload-title').value = '';
-            document.getElementById('upload-url').value = '';
+            try {
+                await fetch('/api/videos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        url: url,
+                        category: 'general',
+                        uploaded_by: currentUser.username,
+                        is_approved: false
+                    })
+                });
+                alert("Media submission dispatched to Administrator desk!");
+                document.getElementById('upload-title').value = '';
+                document.getElementById('upload-url').value = '';
+            } catch(e) { console.error("Failed to post media parameters:", e); }
         }
 
         // ==========================================
         // ADMIN SERVICES LOGIC
         // ==========================================
         async function loadAdminUsers() {
-            const res = await fetch('/api/admin/users');
-            const users = await res.json();
-            const tbody = document.getElementById('admin-users-list');
-            tbody.innerHTML = '';
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                const tbody = document.getElementById('admin-users-list');
+                tbody.innerHTML = '';
 
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                row.className = "border-b text-slate-700";
-                row.innerHTML = `
-                    <td class="p-2 font-semibold">${user.username}</td>
-                    <td class="p-2 font-mono">${user.password}</td>
-                    <td class="p-2 uppercase text-xs font-bold">${user.role}</td>
-                    <td class="p-2 flex gap-2">
-                        <button onclick="toggleUserLock(${user.id}, ${user.is_locked}, '${user.username}', '${user.password}', '${user.role}')" class="${user.is_locked ? 'bg-amber-500' : 'bg-slate-500'} text-white text-xs px-2 py-1 rounded">
-                            ${user.is_locked ? 'Unlock' : 'Lock'}
-                        </button>
-                        <button onclick="deleteUser(${user.id})" class="bg-red-500 text-white text-xs px-2 py-1 rounded">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b border-white/5 text-slate-300";
+                    row.innerHTML = `
+                        <td class="p-3 font-semibold text-white">${user.username}</td>
+                        <td class="p-3 font-mono text-xs text-slate-400">${user.password}</td>
+                        <td class="p-3 uppercase text-[10px] font-bold"><span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded">${user.role}</span></td>
+                        <td class="p-3 flex gap-2">
+                            <button onclick="toggleUserLock(${user.id}, ${user.is_locked}, '${user.username}', '${user.password}', '${user.role}')" class="${user.is_locked ? 'bg-amber-600/20 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-300 border-slate-700'} border text-xs px-2.5 py-1 rounded-lg transition">
+                                ${user.is_locked ? 'Unlock' : 'Lock'}
+                            </button>
+                            <button onclick="deleteUser(${user.id})" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs px-2.5 py-1 rounded-lg transition">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch(e) { console.error("Error loading administration user list:", e); }
         }
 
         async function createUser() {
@@ -499,64 +597,82 @@
             const p = document.getElementById('admin-user-pass').value;
             const r = document.getElementById('admin-user-role').value;
 
-            await fetch('/api/admin/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p, role: r })
-            });
-            loadAdminUsers();
+            try {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p, role: r })
+                });
+                loadAdminUsers();
+                document.getElementById('admin-user-name').value = '';
+                document.getElementById('admin-user-pass').value = '';
+            } catch(e) { console.error("Could not register family account profile:", e); }
         }
 
         async function toggleUserLock(id, is_locked, u, p, r) {
-            await fetch('/api/admin/users', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, username: u, password: p, role: r, is_locked: !is_locked })
-            });
-            loadAdminUsers();
+            try {
+                await fetch('/api/admin/users', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id, username: u, password: p, role: r, is_locked: !is_locked })
+                });
+                loadAdminUsers();
+            } catch(e) { console.error("Failed to alter lock config states:", e); }
         }
 
         async function deleteUser(id) {
-            await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-            loadAdminUsers();
+            if(!confirm("Permanently wipe this user profile?")) return;
+            try {
+                await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+                loadAdminUsers();
+            } catch(e) { console.error("Profile deletion sequence failure:", e); }
         }
 
         async function updateItinerary() {
             const url = document.getElementById('admin-itinerary-url').value;
             if (!url) return;
 
-            await fetch('/api/itinerary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pdf_url: url })
-            });
-            alert("Itinerary pushed live!");
-            loadItinerary();
+            try {
+                await fetch('/api/itinerary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pdf_url: url })
+                });
+                alert("New itinerary file dispatched live!");
+                loadItinerary();
+                document.getElementById('admin-itinerary-url').value = '';
+            } catch(e) { console.error("Itinerary push failure:", e); }
         }
 
         async function saveBannerSettings(active) {
             const text = document.getElementById('admin-banner-text').value;
             const color = document.getElementById('admin-banner-color').value;
 
-            await fetch('/api/settings/banner', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: active, text: text, color: color })
-            });
-            localStorage.setItem('bannerClosed', 'false'); // Reset close flag
-            refreshSettings();
+            try {
+                await fetch('/api/settings/banner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: active, text: text, color: color })
+                });
+                localStorage.setItem('bannerClosed', 'false'); 
+                refreshSettings();
+                alert("Announcement config updated!");
+            } catch(e) { console.error("Banner push configuration failure:", e); }
         }
 
         async function saveMaintenanceSettings(active) {
-            const msg = document.getElementById('admin-maint-text').value || "Under maintenance!";
+            const msg = document.getElementById('admin-maint-text').value || "Maintenance underway!";
             const timer = document.getElementById('admin-maint-timer').value || null;
 
-            await fetch('/api/settings/maintenance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: active, message: msg, timer: timer })
-            });
-            refreshSettings();
+            try {
+                await fetch('/api/settings/maintenance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: active, message: msg, timer: timer })
+                });
+                refreshSettings();
+                alert(`Maintenance toggled: ${active ? 'ACTIVE' : 'INACTIVE'}`);
+            } catch(e) { console.error("Maintenance toggle command failure:", e); }
         }
     </script>
 </body>
