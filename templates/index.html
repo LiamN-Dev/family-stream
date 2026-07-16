@@ -8,6 +8,7 @@
 </head>
 <!-- The body will get class 'theme-vip', 'theme-staff', 'theme-president', etc. injected dynamically -->
 <body id="app-body" class="theme-guest">
+<div class="site-shell">
 
     <!-- SITE WIDE DYNAMIC ALERT BANNER -->
     <div id="alert-banner" class="banner" style="display: none;">
@@ -18,8 +19,9 @@
     <header>
         <div class="header-container">
             <div class="logo">
-                <h1>🏔️ CANADA TRIP 2026</h1>
-                <p>Private Family Media Portal</p>
+                <span class="brand-eyebrow">Trip Log · Alberta &amp; B.C.</span>
+                <h1 class="brand-mark">🏔️ Canada Trip 2026</h1>
+                <p>Private family media portal</p>
             </div>
             <div class="auth-box">
                 <span id="user-greeting">Welcome, Guest!</span>
@@ -64,8 +66,8 @@
         <!-- TAB 3: ITINERARY VIEW -->
         <section id="itinerary-tab" class="tab-content">
             <h2 class="section-title">📅 Trip Itinerary PDF</h2>
-            <div class="pdf-container">
-                <iframe id="itinerary-frame" src="about:blank" width="100%" height="600px"></iframe>
+            <div class="pdf-container card" style="padding: 10px;">
+                <iframe id="itinerary-frame" src="about:blank" width="100%" height="600px" style="border-radius: 10px; border: none;"></iframe>
             </div>
         </section>
 
@@ -79,9 +81,9 @@
                     <form id="drive-upload-form">
                         <input type="text" id="drive-video-title" placeholder="Descriptive Video Title" required>
                         <input type="url" id="drive-video-url" placeholder="Google Drive Shareable Link" required>
-                        <button type="submit">Submit to Admin Queue</button>
+                        <button type="submit" class="admin-btn" style="margin-top: 10px;">Submit to Admin Queue</button>
                     </form>
-                    
+
                     <h4 style="margin-top: 20px;">Your Submissions:</h4>
                     <div id="my-submissions-list" class="sub-list">No drafts submitted yet.</div>
                 </div>
@@ -109,7 +111,7 @@
         <section id="admin-tab" class="tab-content">
             <h2 class="section-title">⚙️ Master Controller Panel</h2>
             <div class="admin-grid">
-                
+
                 <!-- System Overrides (Banners, Maintenance, Itinerary) -->
                 <div class="card">
                     <h3>💡 Global Overrides</h3>
@@ -119,7 +121,6 @@
                             <input type="text" id="m-msg" placeholder="Maintenance message overlay...">
                             <input type="text" id="m-timer" placeholder="Timer description (e.g. '15 minutes')">
                         </div>
-                        <hr>
                         <div class="form-group">
                             <label><input type="checkbox" id="b-toggle"> 📢 Active Site Alert Banner</label>
                             <input type="text" id="b-text" placeholder="Banner announcement text...">
@@ -131,7 +132,6 @@
                                 <option value="#10b981">Emerald Green</option>
                             </select>
                         </div>
-                        <hr>
                         <div class="form-group">
                             <label>📅 Update Daily Itinerary PDF URL</label>
                             <input type="url" id="itinerary-url-input" placeholder="Google Drive/Dropbox PDF direct link">
@@ -174,7 +174,7 @@
                                 <option value="president">President</option>
                             </select>
                         </div>
-                        <button type="submit">Create User</button>
+                        <button type="submit" class="admin-btn">Create User</button>
                     </form>
 
                     <h4>Active Accounts</h4>
@@ -219,6 +219,8 @@
             <button onclick="dismissCustomPopup()">Acknowledge</button>
         </div>
     </div>
+
+</div>
 
     <!-- Global configuration script to load Flask parameters cleanly into JS -->
     <script>
