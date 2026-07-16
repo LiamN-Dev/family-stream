@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Under Maintenance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="maintenance-body">
+    <div class="maintenance-card card">
+        <h1>🛠️ PORTAL MAINTENANCE Active</h1>
+        <p class="m-desc">{{ settings.get('maintenance_message') }}</p>
+        
+        {% if settings.get('maintenance_timer') %}
+            <div class="m-timer">Estimated Offline Duration: <span>{{ settings.get('maintenance_timer') }}</span></div>
+        {% endif %}
+        
+        <p class="m-footer">Please check back in shortly as we adjust server parameters!</p>
+        <a href="/login" class="admin-override">Admin Bypass</a>
+    </div>
+</body>
+</html>
