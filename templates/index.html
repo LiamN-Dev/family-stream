@@ -10,17 +10,16 @@
 <body id="app-body" class="theme-guest">
 <div class="site-shell">
 
-    <!-- SITE WIDE DYNAMIC ALERT BANNER -->
+    <!-- Persistent site-wide banner (revealed after the popup below is dismissed) -->
     <div id="alert-banner" class="banner" style="display: none;">
-        <span id="banner-content">Welcome to the Rockies!</span>
+        <span id="banner-content">Welcome to the trip!</span>
         <button onclick="closeBanner()" class="banner-close">&times;</button>
     </div>
 
     <header>
         <div class="header-container">
             <div class="logo">
-                <span class="brand-eyebrow">Trip Log · Alberta &amp; B.C.</span>
-                <h1 class="brand-mark">🏔️ Canada Trip 2026</h1>
+                <h1 class="brand-mark">🏔️ Canada Trip</h1>
                 <p>Private family media portal</p>
             </div>
             <div class="auth-box">
@@ -30,7 +29,7 @@
         </div>
     </header>
 
-    <!-- MAIN INTERACTIVE NAVIGATION TABS -->
+    <!-- MAIN NAVIGATION -->
     <nav class="tab-navigation">
         <button class="tab-btn active" onclick="switchTab('videos-tab')">🎥 Stream Feed</button>
         <button id="vip-tab-btn" class="tab-btn" onclick="switchTab('vip-tab')" style="display: none;">🌟 VIP Feed</button>
@@ -39,12 +38,10 @@
         <button id="admin-tab-btn" class="tab-btn" onclick="switchTab('admin-tab')" style="display: none;">🛠️ Admin Console</button>
     </nav>
 
-    <!-- SEARCH BAR -->
     <div class="search-container">
         <input type="text" id="video-search" placeholder="🔍 Search through trip videos..." onkeyup="filterVideos()">
     </div>
 
-    <!-- MAIN PORTAL WRAPPER -->
     <main class="main-wrapper">
 
         <!-- TAB 1: GENERAL VIDEOS -->
@@ -55,47 +52,61 @@
             </div>
         </section>
 
-        <!-- TAB 2: VIP BONUS VIDEOS -->
+        <!-- TAB 2: VIP BONUS VIDEOS + video requests -->
         <section id="vip-tab" class="tab-content">
             <h2 class="section-title">🌟 VIP Exclusive Feed</h2>
             <div id="vip-video-grid" class="video-grid">
                 <p class="status-msg">Loading VIP playlist...</p>
             </div>
+
+            <div class="card" id="vip-request-section" style="display:none; margin-top: 24px;">
+                <h3>🎬 Request a Video</h3>
+                <p class="note">Have an idea for a video you'd love to see made from the trip? Send it to the Admin.</p>
+                <form id="video-request-form">
+                    <textarea id="video-request-text" placeholder="Describe the video you'd like made..." required></textarea>
+                    <button type="submit" class="admin-btn" style="margin-top: 10px;">Send Request</button>
+                </form>
+                <h4 style="margin-top: 20px;">Your Requests:</h4>
+                <div id="my-video-requests-list" class="sub-list">No requests sent yet.</div>
+            </div>
         </section>
 
-        <!-- TAB 3: ITINERARY VIEW -->
+        <!-- TAB 3: ITINERARY -->
         <section id="itinerary-tab" class="tab-content">
             <h2 class="section-title">📅 Trip Itinerary PDF</h2>
+
+            <!-- Non-blocking review notice: sits above the PDF, never covers it -->
+            <div id="itinerary-lock-bar" class="lock-bar" style="display:none;">
+                📌 The itinerary was just updated — take a moment to look it over. Full navigation unlocks in
+                <span id="itinerary-lock-countdown">10</span>s.
+            </div>
+
             <div class="pdf-container card" style="padding: 10px;">
                 <iframe id="itinerary-frame" src="about:blank" width="100%" height="600px" style="border-radius: 10px; border: none;"></iframe>
             </div>
         </section>
 
-        <!-- TAB 4: MESSENGER & WORKER SUBMISSIONS (Staff/Pres/Admin Only) -->
+        <!-- TAB 4: MESSENGER (Staff / President / Admin) -->
         <section id="chat-tab" class="tab-content">
             <div class="portal-grid">
-                <!-- Google Drive upload queue (Staff upload, Admin reviews) -->
+                <!-- Staff & President submit trip videos via an external Google Form
+                     (keeps large file uploads off this server entirely) -->
                 <div class="card upload-card" id="staff-drive-section">
-                    <h3>📁 Submit Google Drive Video</h3>
-                    <p class="note">Upload videos to Drive to protect server performance. Admin reviews all drafts!</p>
-                    <form id="drive-upload-form">
-                        <input type="text" id="drive-video-title" placeholder="Descriptive Video Title" required>
-                        <input type="url" id="drive-video-url" placeholder="Google Drive Shareable Link" required>
-                        <button type="submit" class="admin-btn" style="margin-top: 10px;">Submit to Admin Queue</button>
-                    </form>
-
-                    <h4 style="margin-top: 20px;">Your Submissions:</h4>
-                    <div id="my-submissions-list" class="sub-list">No drafts submitted yet.</div>
+                    <h3>📁 Submit a Trip Video</h3>
+                    <p class="note">Send your video (phone photo library or computer file) through the form below — it uploads straight to the Admin's Google Drive, so this site never has to handle the file. The Admin will review, edit, and publish it to the feed.</p>
+                    <a class="nav-btn" style="display:inline-block; margin-top: 10px;" target="_blank" rel="noopener"
+                       href="https://docs.google.com/forms/d/e/1FAIpQLSebM-W1FSOtc2SkOyFd4t_bHpgGY4SxWPFsxRYk5k0P3WaK6A/viewform?usp=header">
+                        Open Submission Form ↗
+                    </a>
                 </div>
 
-                <!-- Live Chat Engine -->
+                <!-- Live Chat -->
                 <div class="card chat-card">
                     <h3>💬 Live Chat Channels</h3>
                     <div class="chat-controls">
                         <label for="chat-channel">Select Channel:</label>
                         <select id="chat-channel" onchange="loadChats()">
                             <option value="global_staff">Global Staff Chat</option>
-                            <option value="admin">Direct Message to Admin</option>
                         </select>
                     </div>
                     <div id="chat-messages" class="chat-display">No messages yet.</div>
@@ -107,19 +118,34 @@
             </div>
         </section>
 
-        <!-- TAB 5: ADMIN MASTER CONSOLE -->
+        <!-- TAB 5: ADMIN CONSOLE -->
         <section id="admin-tab" class="tab-content">
             <h2 class="section-title">⚙️ Master Controller Panel</h2>
             <div class="admin-grid">
 
-                <!-- System Overrides (Banners, Maintenance, Itinerary) -->
+                <!-- Add a video to the feed -->
+                <div class="card">
+                    <h3>🎥 Add Video to Feed</h3>
+                    <form id="admin-add-video-form">
+                        <div class="form-group">
+                            <label>Video Title</label>
+                            <input type="text" id="new-video-title" placeholder="e.g. Day 3 — Lake Louise Hike" required>
+                            <label>YouTube URL</label>
+                            <input type="text" id="new-video-url" placeholder="https://youtube.com/watch?v=..." required>
+                            <label><input type="checkbox" id="new-video-vip"> 🌟 Publish to VIP feed instead of general feed</label>
+                        </div>
+                        <button type="submit" class="admin-btn">Add Video</button>
+                    </form>
+                </div>
+
+                <!-- Global Overrides -->
                 <div class="card">
                     <h3>💡 Global Overrides</h3>
                     <form id="admin-settings-form">
                         <div class="form-group">
                             <label><input type="checkbox" id="m-toggle"> ⚠️ Activate Maintenance Mode</label>
                             <input type="text" id="m-msg" placeholder="Maintenance message overlay...">
-                            <input type="text" id="m-timer" placeholder="Timer description (e.g. '15 minutes')">
+                            <input type="text" id="m-timer" placeholder="Timer description (e.g. '15 minutes') — optional">
                         </div>
                         <div class="form-group">
                             <label><input type="checkbox" id="b-toggle"> 📢 Active Site Alert Banner</label>
@@ -134,7 +160,7 @@
                         </div>
                         <div class="form-group">
                             <label>📅 Update Daily Itinerary PDF URL</label>
-                            <input type="url" id="itinerary-url-input" placeholder="Google Drive/Dropbox PDF direct link">
+                            <input type="url" id="itinerary-url-input" placeholder="Google Drive/Dropbox direct PDF link">
                         </div>
                         <button type="submit" class="admin-btn">Save Overrides</button>
                     </form>
@@ -154,27 +180,43 @@
                     </form>
                 </div>
 
-                <!-- Manage/Publish Staff Upload Submissions -->
+                <!-- VIP Video Requests -->
                 <div class="card">
-                    <h3>📥 Staff Submission Approvals</h3>
-                    <div id="admin-queue-list">Loading queue...</div>
+                    <h3>🎬 VIP Video Requests</h3>
+                    <div id="admin-video-requests">Loading requests...</div>
                 </div>
 
-                <!-- User Account Management (Full Password & Role Lookup/Edits) -->
+                <!-- User Account Management -->
                 <div class="card user-mgmt-card">
                     <h3>👥 Manage User Accounts</h3>
-                    <form id="admin-create-user-form">
+                    <form id="admin-create-user-form" class="create-user-form">
                         <h4>Create Account</h4>
-                        <div class="user-inputs">
-                            <input type="text" id="new-user-name" placeholder="Username" required>
-                            <input type="text" id="new-user-pass" placeholder="Password" required>
+                        <div class="field-row">
+                            <label>Username</label>
+                            <input type="text" id="new-user-name" placeholder="e.g. grandma_v" required>
+                        </div>
+                        <div class="field-row">
+                            <label>Password</label>
+                            <input type="text" id="new-user-pass" placeholder="Temporary password" required>
+                        </div>
+                        <div class="field-row">
+                            <label>Display Name</label>
+                            <input type="text" id="new-user-display" placeholder="How their greeting should read, e.g. Grandma">
+                        </div>
+                        <div class="field-row">
+                            <label>Favorite Color</label>
+                            <input type="color" id="new-user-color" value="#47a68c">
+                        </div>
+                        <div class="field-row">
+                            <label>Account Type</label>
                             <select id="new-user-role">
                                 <option value="vip">VIP Member</option>
                                 <option value="staff">General Staff</option>
                                 <option value="president">President</option>
+                                <option value="admin">Admin</option>
                             </select>
                         </div>
-                        <button type="submit" class="admin-btn">Create User</button>
+                        <button type="submit" class="admin-btn">Create Account</button>
                     </form>
 
                     <h4>Active Accounts</h4>
@@ -183,8 +225,9 @@
                             <thead>
                                 <tr>
                                     <th>User</th>
-                                    <th>Password (Click to See)</th>
+                                    <th>Password</th>
                                     <th>Role</th>
+                                    <th>Color</th>
                                     <th>Locked</th>
                                     <th>Actions</th>
                                 </tr>
@@ -201,17 +244,16 @@
 
     </main>
 
-    <!-- FORCED 10-SECOND ITINERARY LOCK SCREEN MODAL -->
-    <div id="itinerary-lock-modal" class="lock-overlay" style="display: none;">
-        <div class="lock-box">
-            <h2>🚨 ITINERARY MODIFIED! 🚨</h2>
-            <p>A change was recently made to our Canadian Rockies travel schedule. Please review today's active PDF plans carefully before browsing other features.</p>
-            <div id="lock-countdown" class="countdown-timer">10 seconds remaining</div>
-            <button id="lock-dismiss-btn" disabled onclick="dismissItineraryLock()">Locking App View...</button>
+    <!-- SITE-WIDE BANNER POPUP (shown once per visit, then collapses to the top banner) -->
+    <div id="banner-popup-modal" class="popup-modal" style="display: none;">
+        <div class="popup-box">
+            <h3>📢 Site Announcement</h3>
+            <p id="banner-popup-text"></p>
+            <button onclick="dismissBannerPopup()">Got it</button>
         </div>
     </div>
 
-    <!-- TARGET CUSTOM POPUPS (Dynamic popup reader) -->
+    <!-- TARGETED ADMIN POPUPS -->
     <div id="custom-alert-modal" class="popup-modal" style="display: none;">
         <div class="popup-box">
             <h3>📢 Message from Admin</h3>
@@ -222,10 +264,11 @@
 
 </div>
 
-    <!-- Global configuration script to load Flask parameters cleanly into JS -->
     <script>
         const userRole = "{{ session.get('role', 'guest') }}";
         const userName = "{{ session.get('username', '') }}";
+        const userDisplayName = "{{ session.get('display_name', '') }}";
+        const userColor = "{{ session.get('favorite_color', '') }}";
     </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
